@@ -62,22 +62,22 @@ public class MyBot {
      */
     public static Direction PositionToDirection (final Position source,
                                                  final Position destination) {
-        if (source.x - destination.x == 0 && source.y - destination.y == 0) {
+        if (source.x == destination.x && source.y == destination.y) {
             return Direction.STILL;
         }
 
-        if (source.x - destination.x == 0) {
-            if (source.y - destination.y > 0) {
-                return Direction.EAST;
+        if (source.x == destination.x) {
+            if (source.y > destination.y) {
+                return Direction.NORTH;
             } else {
-                return Direction.WEST;
+                return Direction.SOUTH;
             }
         }
 
-        if (source.x - destination.x > 0 && source.y - destination.y == 0) {
-            return Direction.NORTH;
+        if (source.x < destination.x && source.y == destination.y) {
+            return Direction.EAST;
         } else {
-            return Direction.SOUTH;
+            return Direction.WEST;
         }
     }
 
@@ -107,6 +107,7 @@ public class MyBot {
                 gameMap.calculateDistance(ship.position, closestDropoff) > 7 &&
                 game.me.dropoffs.size() < 3) {
             gameMap.at(ship).markUnsafe(null);
+            gameMap.at(ship).structure = ship;
             return Command.transformShipIntoDropoffSite(ship.id);
         }
 
