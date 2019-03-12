@@ -5,6 +5,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+import static hlt.Direction.STILL;
+
 class DP {
     public Map<Ship, Command> lastAction = new ArrayList<>();
     public Player player;
@@ -23,82 +25,6 @@ class DP {
 
 public class MyBot {
     /**
-     * Returneaza cea mai buna directie in care sa mearga nava - adancime 1
-     * @param ship nava pentru care se aplica greedy
-     * @param gameMap harta jocului
-     * @return pozitia pe care urmeaza sa mearga
-     */
-    public static Position Greedy (final Ship ship, final GameMap gameMap) {
-        Position initial = ship.position;
-
-        Position[]  positions =
-                {
-                    new Position(initial.x - 1, initial.y), // sus
-                    new Position(initial.x, initial.y + 1), // dreapta
-                    new Position(initial.x + 1, initial.y), // jos
-                    new Position(initial.x, initial.y - 1)  // stanga
-                };
-
-        Arrays.sort(positions, new Comparator<Position>() {
-            @Override
-            public int compare(Position o1, Position o2) {
-                return gameMap.at(o1).halite - gameMap.at(o2).halite;
-            }
-        });
-
-        for (int i = 0; i < positions.length; ++i) {
-            if (!gameMap.at(positions[i]).isOccupied()) {
-                return positions[i];
-            }
-        }
-
-        return initial;
-    }
-
-    /**
-     * Functie care returneaza comenzi in legatura cu jocul in general
-     * @param game referinta la joc
-     * @return comanda
-     */
-    public static Command DecisionGame (final Game game) {
-
-        // TODO daca playerul are mai mult de 3k halite (ales arbitrar) si runda e sub 200
-        // TODO sa se faca o nava
-        if (game.me.halite > 2000 && game.turnNumber < Constants.MAX_TURNS / 2) {
-            return Command.spawnShip();
-        }
-        return null;
-    }
-
-    /**
-     * Primeste o sursa si o destinatie si intoarce directia in care ar trebui sa mearga ca sa
-     * ajunga destinatie
-     * @param source sursa
-     * @param destination destinatie
-     * @return directia
-     */
-    public static Direction PositionToDirection (final Position source,
-                                                 final Position destination) {
-        if (source.x == destination.x && source.y == destination.y) {
-            return Direction.STILL;
-        }
-
-        if (source.x == destination.x) {
-            if (source.y > destination.y) {
-                return Direction.NORTH;
-            } else {
-                return Direction.SOUTH;
-            }
-        }
-
-        if (source.x < destination.x && source.y == destination.y) {
-            return Direction.EAST;
-        } else {
-            return Direction.WEST;
-        }
-    }
-
-    /**
      * Functie care returneaza comenzi in legatura cu o singura nava
      * @param ship nava
      * @param game jocul
@@ -106,8 +32,6 @@ public class MyBot {
      */
     public static Command DecisionShip (final Ship ship, final Game game, FileWriter fileWriter)
             throws IOException {
-        if (D)
-
         GameMap gameMap = game.gameMap;
         Position closestDropoff = game.me.shipyard.position;
 
@@ -120,39 +44,48 @@ public class MyBot {
             }
         }
 
-        // TODO daca conditia e adevarata sa se creeze un drop-off + conditia daca o nava a ajuns
-        // TODO la mai mult de ~7 pozitii departare
-        if (game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
+        // TODO conditie facut in dropoff
+        if (game.gameMap.height > 64 && game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
                 gameMap.calculateDistance(ship.position, closestDropoff) > 7 &&
                 game.me.dropoffs.size() < 3) {
             gameMap.at(ship).markUnsafe(null);
             gameMap.at(ship).structure = ship;
+
             return Command.transformShipIntoDropoffSite(ship.id);
         }
 
-        // TODO daca are mai mult de 4/5 halite - sa mearga la dropoff
-        if (ship.halite > (Constants.MAX_HALITE * 3 / 5)) {
-            //gameMap.at(pos).markUnsafe(ship);
-            gameMap.at(ship).markUnsafe(null);
-            return ship.move(PositionToDirection(ship.position, closestDropoff));
+        // TODO cand se intoarce nu merge pe cel mai scurt drum
+        if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 3 / 4)) {
+            Direction dir = MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff));
+            ship.goingtoDrop = true;
+            if (!gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).isOccupied()) {
+                gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).markUnsafe(ship);
+                gameMap.at(ship).markUnsafe(null);
+                if (gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).hasStructure()) {
+                    ship.goingtoDrop = false;
+                }
+                return ship.move(MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff)));
+            } else {
+                return ship.move(STILL); // TODO poate trebuie sa faca loc
+            }
         }
 
-        // TODO daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
-        // TODO altfel ramane pe pozitia actuala
-        if (gameMap.at(ship).halite < Constants.MAX_HALITE / 10) {
-            Position pos = Greedy(ship, gameMap);
+        // daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
+        // altfel ramane pe pozitia actuala
+        if (gameMap.at(ship).halite < 50) {
+            Position pos = MyBotUtils.Greedy(ship, gameMap);
 
-            // TODO daca pozitia actuala are mai putine resurse decat cea mai buna alta
-            // TODO pozitie sa ramana aici (ca pe else)
-            if (gameMap.at(ship).halite >= gameMap.at(pos).halite) {
-                return ship.move(Direction.STILL);
+            // daca pozitia actuala are mai putine resurse decat cea mai buna alta
+            // pozitie sa ramana aici (ca pe else)
+            if (gameMap.at(ship).halite > gameMap.at(pos).halite) {
+                return ship.move(STILL);
             } else {
                 gameMap.at(pos).markUnsafe(ship);
-                // not necessary gameMap.at(ship).markUnsafe(null);
-                return ship.move(PositionToDirection(ship.position, pos));
+                gameMap.at(ship).markUnsafe(null);
+                return ship.move(MyBotUtils.PositionToDirection(ship.position, pos));
             }
         } else {
-            return ship.move(Direction.STILL);
+            return ship.move(STILL);
         }
     }
 
@@ -166,9 +99,6 @@ public class MyBot {
         final Random rng = new Random(rngSeed);
 
         Game game = new Game();
-        // At this point "game" variable is populated with initial map data.
-        // This is a good place to do computationally expensive start-up pre-processing.
-        // As soon as you call "ready" function below, the 2 second per turn timer will start.
         game.ready("MyJavaBot");
 
         Log.log("Successfully created bot! My Player ID is " + game.myId +
@@ -185,12 +115,8 @@ public class MyBot {
             for (final Ship ship : me.ships.values()) {
                 commandQueue.add(DecisionShip(ship, game, fileWriter));
             }
-
-            if (
-                game.turnNumber < Constants.MAX_TURNS / 2 &&
-                me.halite >= Constants.SHIP_COST * 2 &&
-                !gameMap.at(me.shipyard).isOccupied())
-            {
+            if (game.turnNumber < Constants.MAX_TURNS / 2 &&
+                    me.halite >= Constants.SHIP_COST * 2 && !gameMap.at(me.shipyard).isOccupied()) {
                 commandQueue.add(me.shipyard.spawn());
             }
             fileWriter.close();
