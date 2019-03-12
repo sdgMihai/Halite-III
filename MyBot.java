@@ -17,16 +17,7 @@ public class MyBot {
     public static Command DecisionShip (final Ship ship, final Game game, FileWriter fileWriter)
             throws IOException {
         GameMap gameMap = game.gameMap;
-        Position closestDropoff = game.me.shipyard.position;
-
-        int distance = game.gameMap.calculateDistance(ship.position, game.me.shipyard.position);
-        for (Dropoff dropoff : game.me.dropoffs.values()) {
-            int auxDistance = gameMap.calculateDistance(ship.position, dropoff.position);
-            if (auxDistance < distance) {
-                distance = auxDistance;
-                closestDropoff = dropoff.position;
-            }
-        }
+        Position closestDropoff = MyBotUtils.ClosestDropOff(game, ship);
 
         // TODO conditie facut in dropoff
         if (game.gameMap.height > 64 && game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
@@ -42,6 +33,7 @@ public class MyBot {
         if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 3 / 4)) {
             Direction dir = MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff));
             ship.goingtoDrop = true;
+            // TODO sa se miste doar daca are destule resurse destul
             if (!gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).isOccupied()) {
                 gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).markUnsafe(ship);
                 gameMap.at(ship).markUnsafe(null);
@@ -61,7 +53,7 @@ public class MyBot {
 
             // daca pozitia actuala are mai putine resurse decat cea mai buna alta
             // pozitie sa ramana aici (ca pe else)
-            if (gameMap.at(ship).halite > gameMap.at(pos).halite) {
+            if (gameMap.at(ship).halite >= gameMap.at(pos).halite * 3 / 4) {
                 return ship.move(STILL);
             } else {
                 gameMap.at(pos).markUnsafe(ship);
@@ -96,11 +88,19 @@ public class MyBot {
 
             final ArrayList<Command> commandQueue = new ArrayList<>();
 
-            // TODO schimbat cu logica noua
-            for (final Ship ship : me.ships.values()) {
-                commandQueue.add(DecisionShip(ship, game, fileWriter));
+            if (Constants.MAX_TURNS - game.turnNumber > gameMap.height / 2) {
+                for (final Ship ship : me.ships.values()) {
+                    commandQueue.add(DecisionShip(ship, game, fileWriter));
+                }
+            } else {
+                game.gameMap.at(me.shipyard.position).markUnsafe(null);
+                // sa mearga toate la spawn ca s-a terminat
+                for (final Ship ship : me.ships.values()) {
+                    ship.goingtoDrop = true;
+                    commandQueue.add(DecisionShip(ship, game, fileWriter));
+                    game.gameMap.at(me.shipyard.position).markUnsafe(null);
+                }
             }
-
             if (game.turnNumber < Constants.MAX_TURNS / 2 &&
                     me.halite >= Constants.SHIP_COST * 2 && !gameMap.at(me.shipyard).isOccupied()) {
                 commandQueue.add(me.shipyard.spawn());

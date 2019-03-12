@@ -1,7 +1,4 @@
-import hlt.Direction;
-import hlt.GameMap;
-import hlt.Position;
-import hlt.Ship;
+import hlt.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -86,5 +83,20 @@ public final class MyBotUtils {
             default:
                 return null;
         }
+    }
+
+    public static Position ClosestDropOff (Game game, Ship ship) {
+        Position closestDropoff = game.me.shipyard.position;
+
+        int distance = game.gameMap.calculateDistance(ship.position, game.me.shipyard.position);
+        for (Dropoff dropoff : game.me.dropoffs.values()) {
+            int auxDistance = game.gameMap.calculateDistance(ship.position, dropoff.position);
+            if (auxDistance < distance) {
+                distance = auxDistance;
+                closestDropoff = dropoff.position;
+            }
+        }
+
+        return closestDropoff;
     }
 }
