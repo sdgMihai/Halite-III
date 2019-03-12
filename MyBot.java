@@ -38,9 +38,9 @@ public class MyBot {
             return Command.transformShipIntoDropoffSite(ship.id);
         }
 
-        // TODO daca are mai mult de 4/5 halite - sa mearga la dropoff
+        // TODO cand se intoarce nu merge pe cel mai scurt drum
         if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 3 / 4)) {
-            Direction dir = MyBotUtils.PositionToDirection(ship.position, closestDropoff);
+            Direction dir = MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff));
             ship.goingtoDrop = true;
             if (!gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).isOccupied()) {
                 gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).markUnsafe(ship);
@@ -48,21 +48,20 @@ public class MyBot {
                 if (gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).hasStructure()) {
                     ship.goingtoDrop = false;
                 }
-                return ship.move(MyBotUtils.PositionToDirection(ship.position, closestDropoff));
+                return ship.move(MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff)));
             } else {
-                return ship.move(STILL); // poate trebuie sa faca loc
+                return ship.move(STILL); // TODO poate trebuie sa faca loc
             }
         }
 
-        // TODO daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
-        // TODO altfel ramane pe pozitia actuala
+        // daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
+        // altfel ramane pe pozitia actuala
         if (gameMap.at(ship).halite < 50) {
             Position pos = MyBotUtils.Greedy(ship, gameMap);
 
-            // TODO daca pozitia actuala are mai putine resurse decat cea mai buna alta
-            // TODO pozitie sa ramana aici (ca pe else)
+            // daca pozitia actuala are mai putine resurse decat cea mai buna alta
+            // pozitie sa ramana aici (ca pe else)
             if (gameMap.at(ship).halite > gameMap.at(pos).halite) {
-                //fileWriter.write(ship.id + " MAI BINE DECAT NIMIC\n");
                 return ship.move(STILL);
             } else {
                 gameMap.at(pos).markUnsafe(ship);
@@ -70,7 +69,6 @@ public class MyBot {
                 return ship.move(MyBotUtils.PositionToDirection(ship.position, pos));
             }
         } else {
-            //fileWriter.write(ship.id + " COLLECTING...\n");
             return ship.move(STILL);
         }
     }
@@ -85,9 +83,7 @@ public class MyBot {
         final Random rng = new Random(rngSeed);
 
         Game game = new Game();
-        // At this point "game" variable is populated with initial map data.
-        // This is a good place to do computationally expensive start-up pre-processing.
-        // As soon as you call "ready" function below, the 2 second per turn timer will start.
+
         game.ready("MyJavaBot");
 
         Log.log("Successfully created bot! My Player ID is " + game.myId +
@@ -105,11 +101,8 @@ public class MyBot {
                 commandQueue.add(DecisionShip(ship, game, fileWriter));
             }
 
-            if (
-                game.turnNumber < Constants.MAX_TURNS / 2 &&
-                me.halite >= Constants.SHIP_COST * 2 &&
-                !gameMap.at(me.shipyard).isOccupied())
-            {
+            if (game.turnNumber < Constants.MAX_TURNS / 2 &&
+                    me.halite >= Constants.SHIP_COST * 2 && !gameMap.at(me.shipyard).isOccupied()) {
                 commandQueue.add(me.shipyard.spawn());
             }
             fileWriter.close();
