@@ -5,7 +5,8 @@ JC = javac
 	$(JC) $(JFLAGS) $*.java
 
 CLASSES = \
-	MyBot.java
+	*.java \
+	hlt/*.java
 
 default: classes
 
@@ -13,3 +14,4 @@ classes: $(CLASSES:.java=.class)
 
 clean:
 	$(RM) *.class
+	$(RM) hlt/*.class
