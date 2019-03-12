@@ -129,7 +129,7 @@ public class MyBot {
                 return ship.move(Direction.STILL);
             } else {
                 gameMap.at(pos).markUnsafe(ship);
-                gameMap.at(ship).markUnsafe(null);
+                // not necessary gameMap.at(ship).markUnsafe(null);
                 return ship.move(PositionToDirection(ship.position, pos));
             }
         } else {
