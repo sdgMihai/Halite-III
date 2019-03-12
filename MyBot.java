@@ -5,23 +5,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+
 import static hlt.Direction.STILL;
-
-class DP {
-    public Map<Ship, Command> lastAction = new ArrayList<>();
-    public Player player;
-
-    DP(Player player){
-        this.player = player;
-    }
-
-    void update() {
-        for (final Ship ship : player.ships.values()) {
-            if (ship)
-        }
-    }
-
-}
 
 public class MyBot {
     /**
@@ -30,7 +15,10 @@ public class MyBot {
      * @param game jocul
      * @return comanda
      */
-    public static Command DecisionShip (final Ship ship, final Game game, FileWriter fileWriter)
+    public static Command DecisionShip (final Ship ship,
+                                        final Game game,
+                                        FileWriter fileWriter,
+                                        DP dp)
             throws IOException {
         GameMap gameMap = game.gameMap;
         Position closestDropoff = game.me.shipyard.position;
@@ -72,7 +60,7 @@ public class MyBot {
 
         // daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
         // altfel ramane pe pozitia actuala
-        if (gameMap.at(ship).halite < 50) {
+        if (dp.lastAction()) {
             Position pos = MyBotUtils.Greedy(ship, gameMap);
 
             // daca pozitia actuala are mai putine resurse decat cea mai buna alta
@@ -90,6 +78,7 @@ public class MyBot {
     }
 
     public static void main(final String[] args) throws IOException {
+        final DP dp;
         final long rngSeed;
         if (args.length > 1) {
             rngSeed = Integer.parseInt(args[1]);
@@ -99,6 +88,7 @@ public class MyBot {
         final Random rng = new Random(rngSeed);
 
         Game game = new Game();
+        dp = new DP(game.me);
         game.ready("MyJavaBot");
 
         Log.log("Successfully created bot! My Player ID is " + game.myId +
@@ -113,7 +103,7 @@ public class MyBot {
 
             // TODO schimbat cu logica noua
             for (final Ship ship : me.ships.values()) {
-                commandQueue.add(DecisionShip(ship, game, fileWriter));
+                commandQueue.add(DecisionShip(ship, game, fileWriter, dp));
             }
             if (game.turnNumber < Constants.MAX_TURNS / 2 &&
                     me.halite >= Constants.SHIP_COST * 2 && !gameMap.at(me.shipyard).isOccupied()) {

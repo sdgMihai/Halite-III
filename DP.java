@@ -1,3 +1,9 @@
+import hlt.Command;
+import hlt.Player;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * DP
  * <p>
@@ -6,7 +12,15 @@
  * @author Gheoace Mihai
  */
 
-package PACKAGE_NAME;
-
 public class DP {
+    public Map<Ship, Command> lastAction = new HashMap<>();
+    public Player player;
+
+    DP(Player player){
+        this.player = player;
+    }
+
+    void update(Ship ship, Command command) {
+        lastAction.put(ship, command);
+    }
 }
