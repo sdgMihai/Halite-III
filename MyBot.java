@@ -38,6 +38,7 @@ public class MyBot {
                 game.me.dropoffs.size() < 3) {
             gameMap.at(ship).markUnsafe(null);
             gameMap.at(ship).structure = ship;
+            dp.update(ship, Command.transformShipIntoDropoffSite(ship.id));
 
             return Command.transformShipIntoDropoffSite(ship.id);
         }
@@ -52,27 +53,34 @@ public class MyBot {
                 if (gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).hasStructure()) {
                     ship.goingtoDrop = false;
                 }
+                dp.update(ship, ship.move(MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff))));
                 return ship.move(MyBotUtils.PositionToDirection(ship.position, gameMap.normalize(closestDropoff)));
             } else {
+                dp.update(ship, ship.move(STILL));
                 return ship.move(STILL); // TODO poate trebuie sa faca loc
             }
         }
 
         // daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
         // altfel ramane pe pozitia actuala
-        if (dp.lastAction()) {
+        if (gameMap.at(ship).halite < 50 || ship.halite > 5
+            || (dp.isnTMoving(ship))
+        ) {
             Position pos = MyBotUtils.Greedy(ship, gameMap);
 
             // daca pozitia actuala are mai putine resurse decat cea mai buna alta
             // pozitie sa ramana aici (ca pe else)
             if (gameMap.at(ship).halite > gameMap.at(pos).halite) {
+                dp.update(ship, ship.move(STILL));
                 return ship.move(STILL);
             } else {
                 gameMap.at(pos).markUnsafe(ship);
                 gameMap.at(ship).markUnsafe(null);
+                dp.update(ship, ship.move(MyBotUtils.PositionToDirection(ship.position, pos)));
                 return ship.move(MyBotUtils.PositionToDirection(ship.position, pos));
             }
         } else {
+            dp.update(ship, ship.move(STILL));
             return ship.move(STILL);
         }
     }
