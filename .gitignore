@@ -1,6 +1,7 @@
 *.log
 *.hlt
 starter_kits
+halite
 
 CMakeLists.txt.user
 CMakeCache.txt
