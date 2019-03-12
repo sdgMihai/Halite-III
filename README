@@ -1,0 +1,78 @@
+Ultima modificare: 03.03.2019
+
+Continutul repository-ului:
+
+ * environment/               - engine-ul jocului (putin modificat pentru a permite evaluarea facila a proiectelor)
+ * bots/                      - folder cu botii oficiali
+ * replays/                   - folder cu rezultatele rularii botului (fisiere tip *.hlt, comprimate)
+ * replays-readable/          - folder cu rezultatele rularii botului (fisiere tip *.hlt, necomprimate)
+ * run.py                     - scriptul de evaluare
+ * halite-resources.zip       - arhiva cu continutul acestui repository
+ * upload_archive.py          - script pentru upload-ul arhivei cu solutia de la etapa curenta pe git
+
+===============
+Prerequisites
+===============
+
+Pentru rularea scriptului de evaluare aveți nevoie de Python (>= 2.7.2) si cmake (>=3.5).
+
+sudo apt-get install cmake
+
+Evaluarea proiectului se va face pe un sistem Linux, 64 biti.
+
+===============
+Creare + testare + upload arhiva
+===============
+Pentru a usura procesul de corectare, folositi scriptul create_archive.py.
+Acesta construieste arhiva cu solutia pentru etapa curenta si va ofera posibilitatea
+de a o testa/salva pe git.
+
+Exemplu:
+
+* C++:
+    python ./create_archive.py --etapa 1 --makefile Makefile --readme Readme --files MyBot.cpp hlt/* --test ./MyBot
+* Java
+    python ./create_archive.py --etapa 1 --makefile Makefile --readme Readme --files MyBot.java hlt/* --test "java MyBot"
+
+
+Parametrii:
+    -- etapa      Indicele etapei (1, 2, 3, 4)
+    -- makefile   Path spre fisierul makefile (sau CMakeLists.txt)
+    -- readme     Path spre fisierul Readme (un simplu fisier text)
+    -- files      Path spre toate sursele necesare rularii botului vostru.
+    -- test       (Optional) Comanda de rulare a botului (eg. java MyBot). 
+		          Daca primeste acest parametru, scriptul testeaza noua arhiva
+                  folosind scriptul oficial de evaluare.
+    -- upload     (Optional) Adauga arhiva pe git, in branch-ul curent.
+
+===============
+Testare
+===============
+
+Scriptul de evaluare ./run.py va rula "make" înainte de execuția propriu-zisă.
+
+Pentru a-l folosi:
+
+* Descărcați întreaga arhivă într-un folder nou.
+* Copiați sursele voastre/makefile in același folder.
+* Apelați “run.py” cu argumentele specificate mai jos.
+
+(Scriptul create_archive.py, mentionat mai sus, simuleaza exact pasii mentionati mai devreme)
+
+Exemplu rulare:
+
+* C++ Bot:
+    python ./run.py --cmd "./MyBot" --round 1
+
+* Java Bot:
+    python ./run.py --cmd "java MyBot" --round 1
+
+* Python Bot:
+    python ./run.py --cmd "python MyBot.py" --round 1
+
+Parametrii:
+    -- cmd        Comanda de execuție pentru bot (trebuie sa fie validă pentru locația curentă)
+    -- round      (Optional) Indicele etapei (1, 2, 3), default 1
+    -- map        (Optional) Indicele unei harti specifice pe care vreti sa testati (indexat de la 0)
+    -- clean_logs (Optional) Dupa testare, șterge fișierele de log/replays, apeleaza make clean
+    -- clean      (Optional) Inainte de a apela make, scriptul va apela "make clean"
