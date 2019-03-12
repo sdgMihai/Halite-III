@@ -26,7 +26,7 @@ public final class MyBotUtils {
                         new Position(initial.x, initial.y - 1)  // stanga
                 };
         Arrays.sort(positions,
-                (Position o1, Position o2) -> gameMap.at(o1).halite - gameMap.at(o2).halite);
+                (Position o1, Position o2) -> gameMap.at(o2).halite - gameMap.at(o1).halite);
         for (int i = 0; i < positions.length; ++i) {
             if (!gameMap.at(positions[i]).isOccupied()) {
                 return positions[i];

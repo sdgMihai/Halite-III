@@ -29,16 +29,17 @@ public class MyBot {
         }
 
         // TODO conditie facut in dropoff
-        if (game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
+        if (game.gameMap.height > 64 && game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
                 gameMap.calculateDistance(ship.position, closestDropoff) > 7 &&
                 game.me.dropoffs.size() < 3) {
             gameMap.at(ship).markUnsafe(null);
             gameMap.at(ship).structure = ship;
+
             return Command.transformShipIntoDropoffSite(ship.id);
         }
 
         // TODO daca are mai mult de 4/5 halite - sa mearga la dropoff
-        if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 4 / 5)) {
+        if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 3 / 4)) {
             Direction dir = MyBotUtils.PositionToDirection(ship.position, closestDropoff);
             ship.goingtoDrop = true;
             if (!gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).isOccupied()) {
@@ -64,7 +65,6 @@ public class MyBot {
                 //fileWriter.write(ship.id + " MAI BINE DECAT NIMIC\n");
                 return ship.move(STILL);
             } else {
-                fileWriter.write(ship.id + " " + MyBotUtils.PositionToDirection(ship.position, pos) + "\n");
                 gameMap.at(pos).markUnsafe(ship);
                 gameMap.at(ship).markUnsafe(null);
                 return ship.move(MyBotUtils.PositionToDirection(ship.position, pos));
