@@ -4,82 +4,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+import static hlt.Direction.STILL;
+
 public class MyBot {
-    /**
-     * Returneaza cea mai buna directie in care sa mearga nava - adancime 1
-     * @param ship nava pentru care se aplica greedy
-     * @param gameMap harta jocului
-     * @return pozitia pe care urmeaza sa mearga
-     */
-    public static Position Greedy (final Ship ship, final GameMap gameMap) {
-        Position initial = ship.position;
-
-        Position[]  positions =
-                {
-                    new Position(initial.x - 1, initial.y), // sus
-                    new Position(initial.x, initial.y + 1), // dreapta
-                    new Position(initial.x + 1, initial.y), // jos
-                    new Position(initial.x, initial.y - 1)  // stanga
-                };
-
-        Arrays.sort(positions, new Comparator<Position>() {
-            @Override
-            public int compare(Position o1, Position o2) {
-                return gameMap.at(o1).halite - gameMap.at(o2).halite;
-            }
-        });
-
-        for (int i = 0; i < positions.length; ++i) {
-            if (!gameMap.at(positions[i]).isOccupied()) {
-                return positions[i];
-            }
-        }
-
-        return initial;
-    }
-
-    /**
-     * Functie care returneaza comenzi in legatura cu jocul in general
-     * @param game referinta la joc
-     * @return comanda
-     */
-    public static Command DecisionGame (final Game game) {
-
-        // TODO daca playerul are mai mult de 3k halite (ales arbitrar) si runda e sub 200
-        // TODO sa se faca o nava
-        if (game.me.halite > 2000 && game.turnNumber < Constants.MAX_TURNS / 2) {
-            return Command.spawnShip();
-        }
-        return null;
-    }
-
-    /**
-     * Primeste o sursa si o destinatie si intoarce directia in care ar trebui sa mearga ca sa
-     * ajunga destinatie
-     * @param source sursa
-     * @param destination destinatie
-     * @return directia
-     */
-    public static Direction PositionToDirection (final Position source,
-                                                 final Position destination) {
-        if (source.x == destination.x && source.y == destination.y) {
-            return Direction.STILL;
-        }
-
-        if (source.x == destination.x) {
-            if (source.y > destination.y) {
-                return Direction.NORTH;
-            } else {
-                return Direction.SOUTH;
-            }
-        }
-
-        if (source.x < destination.x && source.y == destination.y) {
-            return Direction.EAST;
-        } else {
-            return Direction.WEST;
-        }
-    }
 
     /**
      * Functie care returneaza comenzi in legatura cu o singura nava
@@ -101,8 +28,7 @@ public class MyBot {
             }
         }
 
-        // TODO daca conditia e adevarata sa se creeze un drop-off + conditia daca o nava a ajuns
-        // TODO la mai mult de ~7 pozitii departare
+        // TODO conditie facut in dropoff
         if (game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4 &&
                 gameMap.calculateDistance(ship.position, closestDropoff) > 7 &&
                 game.me.dropoffs.size() < 3) {
@@ -112,28 +38,40 @@ public class MyBot {
         }
 
         // TODO daca are mai mult de 4/5 halite - sa mearga la dropoff
-        if (ship.halite > (Constants.MAX_HALITE * 3 / 5)) {
-            //gameMap.at(pos).markUnsafe(ship);
-            gameMap.at(ship).markUnsafe(null);
-            return ship.move(PositionToDirection(ship.position, closestDropoff));
+        if (ship.goingtoDrop || ship.halite > (Constants.MAX_HALITE * 4 / 5)) {
+            Direction dir = MyBotUtils.PositionToDirection(ship.position, closestDropoff);
+            ship.goingtoDrop = true;
+            if (!gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).isOccupied()) {
+                gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).markUnsafe(ship);
+                gameMap.at(ship).markUnsafe(null);
+                if (gameMap.at(MyBotUtils.DirectionToPosition(ship.position, dir)).hasStructure()) {
+                    ship.goingtoDrop = false;
+                }
+                return ship.move(MyBotUtils.PositionToDirection(ship.position, closestDropoff));
+            } else {
+                return ship.move(STILL); // poate trebuie sa faca loc
+            }
         }
 
         // TODO daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
         // TODO altfel ramane pe pozitia actuala
-        if (gameMap.at(ship).halite < Constants.MAX_HALITE / 10) {
-            Position pos = Greedy(ship, gameMap);
+        if (gameMap.at(ship).halite < 50) {
+            Position pos = MyBotUtils.Greedy(ship, gameMap);
 
             // TODO daca pozitia actuala are mai putine resurse decat cea mai buna alta
             // TODO pozitie sa ramana aici (ca pe else)
-            if (gameMap.at(ship).halite >= gameMap.at(pos).halite) {
-                return ship.move(Direction.STILL);
+            if (gameMap.at(ship).halite > gameMap.at(pos).halite) {
+                //fileWriter.write(ship.id + " MAI BINE DECAT NIMIC\n");
+                return ship.move(STILL);
             } else {
+                fileWriter.write(ship.id + " " + MyBotUtils.PositionToDirection(ship.position, pos) + "\n");
                 gameMap.at(pos).markUnsafe(ship);
                 gameMap.at(ship).markUnsafe(null);
-                return ship.move(PositionToDirection(ship.position, pos));
+                return ship.move(MyBotUtils.PositionToDirection(ship.position, pos));
             }
         } else {
-            return ship.move(Direction.STILL);
+            //fileWriter.write(ship.id + " COLLECTING...\n");
+            return ship.move(STILL);
         }
     }
 

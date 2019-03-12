@@ -2,6 +2,7 @@ package hlt;
 
 public class Ship extends Entity {
     public final int halite;
+    public boolean goingtoDrop = false;
 
     public Ship(final PlayerId owner, final EntityId id, final Position position, final int halite) {
         super(owner, id, position);
