@@ -1,8 +1,25 @@
 import hlt.*;
+import javafx.util.Pair;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+
+class DP {
+    public Map<Ship, Command> lastAction = new ArrayList<>();
+    public Player player;
+
+    DP(Player player){
+        this.player = player;
+    }
+
+    void update() {
+        for (final Ship ship : player.ships.values()) {
+            if (ship)
+        }
+    }
+
+}
 
 public class MyBot {
     /**
@@ -89,6 +106,8 @@ public class MyBot {
      */
     public static Command DecisionShip (final Ship ship, final Game game, FileWriter fileWriter)
             throws IOException {
+        if (D)
+
         GameMap gameMap = game.gameMap;
         Position closestDropoff = game.me.shipyard.position;
 
