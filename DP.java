@@ -41,5 +41,9 @@ public class DP {
         return false;
     }
 
-
+    Boolean wasMoving(Ship ship) {
+        if (counts.getOrDefault(ship, 0) == 0)
+            return true;
+        return false;
+    }
 }

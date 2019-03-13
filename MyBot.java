@@ -63,9 +63,7 @@ public class MyBot {
 
         // daca pozitia actuala nu mai are destule resurse, sa mearga in alta pozitie
         // altfel ramane pe pozitia actuala
-        if (gameMap.at(ship).halite < 50 || ship.halite > 5
-            || (dp.isnTMoving(ship))
-        ) {
+        if ((gameMap.at(ship).halite < 50 && !dp.wasMoving(ship)) || ship.halite > 5) {
             Position pos = MyBotUtils.Greedy(ship, gameMap);
 
             // daca pozitia actuala are mai putine resurse decat cea mai buna alta
