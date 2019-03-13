@@ -1,88 +1,121 @@
+
 import hlt.*;
 
 import java.util.*;
+import java.util.stream.*;
 
 public class MyBot {
 
-    /**
-     * Returneaza cea mai buna directie in care sa mearga nava - adancime 1
-     * @param ship nava pentru care se aplica greedy
-     * @param gameMap harta jocului
-     * @return pozitia pe care urmeaza sa mearga
-     */
-    public static Position Greedy (final Ship ship, final GameMap gameMap) {
-        Position initial = ship.position;
+    private static final Game game = new Game();
+    private static final Random rnd = new Random();
 
-        Position[]  positions =
-                {
-                    new Position(initial.x - 1, initial.y), // sus
-                    new Position(initial.x, initial.y + 1), // dreapta
-                    new Position(initial.x + 1, initial.y), // jos
-                    new Position(initial.x, initial.y - 1)  // stanga
-                };
+    private static final List<Position> vips = new ArrayList<>();
 
-        Arrays.sort(positions, new Comparator<Position>() {
-            @Override
-            public int compare(Position o1, Position o2) {
-                return gameMap.at(o1).halite - gameMap.at(o2).halite;
-            }
-        });
-        return positions[0];
+    private static void scanVipPositions() {
+        List<MapCell> cells = Arrays.asList(game.gameMap.cells).stream().flatMap((f) -> Arrays.asList(f).stream()).collect(Collectors.toList());
+
+        Collections.sort(cells, (a, b) -> b.halite - a.halite);
+
+        vips.clear();
+        vips.addAll(cells.stream().limit(cells.size() / 100).map((f) -> f.position).collect(Collectors.toList()));
     }
 
-    /**
-     * Functie care returneaza comenzi in legatura cu jocul in general
-     * @param game referinta la joc
-     * @return comanda
-     */
-    public static Command DecisionGame (final Game game) {
-
-        // TODO daca playerul are mai mult de 3k halite (ales arbitrar) si runda e sub 200
-        // TODO sa se faca o nava
-        if (game.me.halite > 3000 && game.turnNumber < Constants.MAX_TURNS / 2) {
-            return null;
+    private static boolean shouldBuildDrop(final Position p) {
+        for (Dropoff df : game.me.dropoffs.values()) {
+            if (game.gameMap.calculateDistance(p, df.position) < (game.gameMap.height * 3 / 4)) {
+                return false;
+            }
         }
 
-        // TODO daca conditia e adevarata sa se creeze un drop-off + conditia daca o nava a ajuns
-        // TODo la mai mult de ~8 pozitii departare
-        if (game.me.halite > 8000 && game.turnNumber < Constants.MAX_TURNS * 3 / 4) {
-            return null;
-        }
-
-        return null;
+        return true;
     }
 
-    /**
-     * Functie care returneaza comenzi in legatura cu o singura nava
-     * @param ship nava
-     * @param gameMap harta jocului
-     * @return comanda
-     */
-    public static Command DecisionShip (final Ship ship, final GameMap gameMap) {
-
-        // TODO daca are mai mult de 750 halite - sa mearga la dropoff
-        if (ship.halite > (Constants.MAX_HALITE * 3 / 4)) {
-
-            return null;
+    private static Pair<Position, Direction> nearestTarget(final Ship ship, final List<Position> targets) {
+        Direction minDir = null;
+        Position minLoc = null;
+        int minDist = Integer.MAX_VALUE;
+        for (Position p : targets) {
+            for (Direction dir : Direction.ALL_CARDINALS) {
+                final Position loc = ship.position.directionalOffset(dir);
+                final int dist = game.gameMap.calculateDistance(loc, p);
+                if (dist < minDist) {
+                    minDist = dist;
+                    minLoc = loc;
+                    minDir = dir;
+                }
+            }
         }
 
-        // TODO daca pozitia actuala nu mai are destule resurse sa mearga in alta pozitie
-        // TODO altfel ramane pe pozitia actuala
-        if (gameMap.cells[ship.position.x][ship.position.y].halite < (Constants.MAX_HALITE / 4)) {
+        return new Pair<>(minLoc, minDir);
+    }
 
-            // TODO daca pozitia actuala are mai putine resurse decat cea mai buna alta
-            // TODO pozitie sa ramana aici (ca pe else)
-            int result = 0;
-            if (gameMap.cells[ship.position.x][ship.position.y].halite > result) {
+    private static Pair<Position, Direction> nearestDrop(final Ship ship) {
+        List<Position> drops = new ArrayList<>();
+        drops.add(game.me.shipyard.position);
+        drops.addAll(game.me.dropoffs.values().stream().map((d) -> d.position).collect(Collectors.toList()));
 
-                return null;
+        return nearestTarget(ship, drops);
+    }
+
+    private static List<Direction> findDirections(final Ship ship) {
+        final List<Position> positions = new ArrayList<>();
+        final Map<Position, Direction> directions = new HashMap<>();
+
+        final Pair<Position, Direction> closestDrop = nearestDrop(ship);
+        final Position dropLoc = closestDrop.getFirst();
+        final Direction dropDir = closestDrop.getSecond();
+
+        int halTreshold = (100 - (game.turnNumber * 100 / Constants.MAX_TURNS));
+        halTreshold = Math.min(halTreshold, 80);
+        halTreshold = Math.max(halTreshold, 66);
+
+        if (ship.halite >= halTreshold * Constants.MAX_HALITE / 100) {
+            positions.add(dropLoc);
+            directions.put(dropLoc, dropDir);
+
+            for (Direction dir : Direction.ALL_CARDINALS) {
+                if (dir.equals(dropDir)) {
+                    continue;
+                }
+
+                final Position p = ship.position.directionalOffset(dir);
+                positions.add(p);
+                directions.put(p, dir);
             }
-
-            return null;
         } else {
+            final Pair<Position, Direction> closestVip = nearestTarget(ship, vips);
+            final Direction vipDir = closestVip.getSecond();
 
-            return null;
+            for (Direction dir : Direction.ALL_CARDINALS) {
+                final Position p = ship.position.directionalOffset(dir);
+                directions.put(p, dir);
+                final int distanceAmp = game.gameMap.calculateDistance(p, dropLoc);
+                final int vipAmp = Objects.equals(dir, vipDir) ? 2 : 1;
+                final int hall = Integer.max(1, game.gameMap.at(p).halite);
+                final int weight = Integer.max(1, hall * distanceAmp * vipAmp);
+                for (int i = 0; i < weight; ++i) {
+                    positions.add(p);
+                }
+            }
+
+            Collections.shuffle(positions, rnd);
         }
+
+        return positions.stream().map(directions::get).distinct().collect(Collectors.toList());
+    }
+
+    private static boolean canCrash(final Ship ship, final Direction direction) {
+        Position newLocation = ship.position.directionalOffset(direction);
+
+        for (Direction dir : Direction.ALL_CARDINALS) {
+            final Position p = newLocation.directionalOffset(dir);
+
+            if (game.gameMap.at(p).isOccupied() && !game.gameMap.at(p).ship.owner.equals(game.myId)) {
+                return true;
+            }
+        }
+
+        return game.gameMap.at(newLocation).isOccupied();
     }
 
     public static void main(final String[] args) {
@@ -90,19 +123,20 @@ public class MyBot {
         if (args.length > 1) {
             rngSeed = Integer.parseInt(args[1]);
         } else {
-            rngSeed = System.nanoTime();
+            rngSeed = 42;
         }
-        final Random rng = new Random(rngSeed);
+        rnd.setSeed(rngSeed);
 
-        Game game = new Game();
         // At this point "game" variable is populated with initial map data.
         // This is a good place to do computationally expensive start-up pre-processing.
         // As soon as you call "ready" function below, the 2 second per turn timer will start.
+        game.ready("QuantumGreedy");
 
-        game.ready("MyJavaBot");
+        final int maxShips = Constants.MAX_TURNS * 2 / game.gameMap.height;
 
-        Log.log("Successfully created bot! My Player ID is " + game.myId +
-                ". Bot rng seed is " + rngSeed + ".");
+        Log.log("Successfully created bot! My Player ID is " + game.myId
+                + ". Bot rng seed is " + rngSeed + ".");
+
         for (;;) {
             game.updateFrame();
             final Player me = game.me;
@@ -110,24 +144,49 @@ public class MyBot {
 
             final ArrayList<Command> commandQueue = new ArrayList<>();
 
-            Command command = DecisionGame(game); //
+            scanVipPositions();
+
+            boolean willSpawn = false;
+            if (me.ships.size() < maxShips
+                    && me.halite >= Constants.SHIP_COST
+                    && !gameMap.at(me.shipyard).isOccupied()) {
+                me.halite -= Constants.SHIP_COST;
+                commandQueue.add(me.shipyard.spawn());
+                willSpawn = true;
+            }
 
             // TODO schimbat cu logica noua
             for (final Ship ship : me.ships.values()) {
-                if (gameMap.at(ship).halite < Constants.MAX_HALITE / 10 || ship.isFull()) {
-                    final Direction randomDirection = Direction.ALL_CARDINALS.get(rng.nextInt(4));
-                    commandQueue.add(ship.move(randomDirection));
-                } else {
-                    commandQueue.add(ship.stayStill());
+                if (shouldBuildDrop(ship.position)
+                        && me.halite > Constants.DROPOFF_COST
+                        && vips.contains(ship.position)) {
+                    me.halite -= Constants.DROPOFF_COST;
+                    commandQueue.add(ship.makeDropoff());
+                    continue;
                 }
-            }
 
-            if (
-                game.turnNumber <= 200 &&
-                me.halite >= Constants.SHIP_COST &&
-                !gameMap.at(me.shipyard).isOccupied())
-            {
-                commandQueue.add(me.shipyard.spawn());
+                Direction goodDir = null;
+                for (Direction dir : findDirections(ship)) {
+                    if (!canCrash(ship, dir)) {
+                        goodDir = dir;
+                        break;
+                    }
+                }
+
+                if (goodDir == null) {
+                    commandQueue.add(ship.stayStill());
+
+                    continue;
+                }
+
+                final Position pos = ship.position.directionalOffset(goodDir);
+                if (gameMap.at(ship.position).halite > 64 && !ship.isFull()
+                        || me.shipyard.position.equals(pos) && willSpawn
+                        || ship.halite - gameMap.at(ship).halite / 10 < 0) {
+                    commandQueue.add(ship.stayStill());
+                } else {
+                    commandQueue.add(ship.move(gameMap.naiveNavigate(ship, pos)));
+                }
             }
 
             game.endTurn(commandQueue);
