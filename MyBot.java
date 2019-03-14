@@ -16,8 +16,10 @@ public class MyBot {
 
         Collections.sort(cells, (a, b) -> b.halite - a.halite);
 
+        final int top = (int)Math.sqrt(game.gameMap.height * game.gameMap.width) / 16;
+        
         vips.clear();
-        vips.addAll(cells.stream().limit(cells.size() / 100).map((f) -> f.position).collect(Collectors.toList()));
+        vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) -> f.position).collect(Collectors.toList()));
     }
 
     private static boolean shouldBuildDrop(final Position p) {
@@ -30,7 +32,9 @@ public class MyBot {
         return true;
     }
 
-    private static Pair<Position, Direction> nearestTarget(final Ship ship, final List<Position> targets) {
+    private static List<Pair<Position, Direction>> nearestTargets(final Ship ship, final List<Position> targets) {
+        List<Pair<Position, Direction>> nearest = new ArrayList<>();
+
         Direction minDir = null;
         Position minLoc = null;
         int minDist = Integer.MAX_VALUE;
@@ -42,40 +46,50 @@ public class MyBot {
                     minDist = dist;
                     minLoc = loc;
                     minDir = dir;
+
+                    nearest.clear();
+                }
+                if (dist == minDist) {
+                    nearest.add(new Pair<>(minLoc, minDir));
                 }
             }
         }
 
-        return new Pair<>(minLoc, minDir);
+        return nearest;
     }
 
-    private static Pair<Position, Direction> nearestDrop(final Ship ship) {
+    private static List<Pair<Position, Direction>> nearestDrops(final Ship ship) {
         List<Position> drops = new ArrayList<>();
         drops.add(game.me.shipyard.position);
         drops.addAll(game.me.dropoffs.values().stream().map((d) -> d.position).collect(Collectors.toList()));
 
-        return nearestTarget(ship, drops);
+        return nearestTargets(ship, drops);
     }
 
     private static List<Direction> findDirections(final Ship ship) {
         final List<Position> positions = new ArrayList<>();
         final Map<Position, Direction> directions = new HashMap<>();
 
-        final Pair<Position, Direction> closestDrop = nearestDrop(ship);
-        final Position dropLoc = closestDrop.getFirst();
-        final Direction dropDir = closestDrop.getSecond();
+        final List<Pair<Position, Direction>> closestDrops = nearestDrops(ship);
 
         int halTreshold = (100 - (game.turnNumber * 100 / Constants.MAX_TURNS));
         halTreshold = Math.min(halTreshold, 80);
         halTreshold = Math.max(halTreshold, 66);
 
         if (ship.halite >= halTreshold * Constants.MAX_HALITE / 100) {
-            positions.add(dropLoc);
-            directions.put(dropLoc, dropDir);
+            for (Pair<Position, Direction> drop : closestDrops) {
+                final Position dropLoc = drop.getFirst();
+                final Direction dropDir = drop.getSecond();
+
+                positions.add(dropLoc);
+                directions.put(dropLoc, dropDir);
+            }
+
+            Collections.shuffle(positions);
 
             final List<Position> randPositions = new ArrayList<>();
             for (Direction dir : Direction.ALL_CARDINALS) {
-                if (dir.equals(dropDir)) {
+                if (closestDrops.stream().anyMatch((p) -> p.getSecond() == dir)) {
                     continue;
                 }
 
@@ -83,18 +97,17 @@ public class MyBot {
                 randPositions.add(p);
                 directions.put(p, dir);
             }
-            
+
             Collections.shuffle(randPositions, rnd);
             positions.addAll(randPositions);
         } else {
-            final Pair<Position, Direction> closestVip = nearestTarget(ship, vips);
-            final Direction vipDir = closestVip.getSecond();
+            final List<Pair<Position, Direction>> closestVips = nearestTargets(ship, vips);
 
             for (Direction dir : Direction.ALL_CARDINALS) {
                 final Position p = ship.position.directionalOffset(dir);
                 directions.put(p, dir);
-                final int distanceAmp = game.gameMap.calculateDistance(p, dropLoc);
-                final int vipAmp = Objects.equals(dir, vipDir) ? 4 : 1;
+                final int distanceAmp = game.gameMap.calculateDistance(p, game.me.shipyard.position);
+                final int vipAmp = closestVips.stream().anyMatch((v) -> v.getSecond() == dir) ? 4 : 1;
                 final int hall = Integer.max(1, game.gameMap.at(p).halite);
                 final int weight = Integer.max(1, hall * distanceAmp * vipAmp);
                 for (int i = 0; i < weight; ++i) {
@@ -136,7 +149,7 @@ public class MyBot {
         // As soon as you call "ready" function below, the 2 second per turn timer will start.
         game.ready("QuantumGreedy");
 
-        final int maxShips = Constants.MAX_TURNS * 2 / game.gameMap.height;
+        final int maxShips = (int)Math.sqrt(game.gameMap.height * game.gameMap.width) / 2 ;
 
         Log.log("Successfully created bot! My Player ID is " + game.myId
                 + ". Bot rng seed is " + rngSeed + ".");
