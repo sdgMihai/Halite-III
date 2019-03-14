@@ -63,7 +63,7 @@ public class MyBot {
     private static boolean canUseAsDropOff(final Position p) {
         final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
 
-        final int dropOffProximityRange = edgeSize / 2;
+        final int dropOffProximityRange = edgeSize / 4;
         for (Dropoff df : game.me.dropoffs.values()) {
             if (game.gameMap.calculateDistance(p, df.position) < dropOffProximityRange) {
                 return false;
