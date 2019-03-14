@@ -73,15 +73,19 @@ public class MyBot {
             positions.add(dropLoc);
             directions.put(dropLoc, dropDir);
 
+            final List<Position> randPositions = new ArrayList<>();
             for (Direction dir : Direction.ALL_CARDINALS) {
                 if (dir.equals(dropDir)) {
                     continue;
                 }
 
                 final Position p = ship.position.directionalOffset(dir);
-                positions.add(p);
+                randPositions.add(p);
                 directions.put(p, dir);
             }
+            
+            Collections.shuffle(randPositions, rnd);
+            positions.addAll(randPositions);
         } else {
             final Pair<Position, Direction> closestVip = nearestTarget(ship, vips);
             final Direction vipDir = closestVip.getSecond();
@@ -90,7 +94,7 @@ public class MyBot {
                 final Position p = ship.position.directionalOffset(dir);
                 directions.put(p, dir);
                 final int distanceAmp = game.gameMap.calculateDistance(p, dropLoc);
-                final int vipAmp = Objects.equals(dir, vipDir) ? 2 : 1;
+                final int vipAmp = Objects.equals(dir, vipDir) ? 4 : 1;
                 final int hall = Integer.max(1, game.gameMap.at(p).halite);
                 final int weight = Integer.max(1, hall * distanceAmp * vipAmp);
                 for (int i = 0; i < weight; ++i) {
