@@ -11,13 +11,22 @@ public class MyBot {
 
     private static final List<Position> vips = new ArrayList<>();
 
+    /* based on https://stackoverflow.com/a/11926952 */
+    public static <E> E getWeightedRandom(List<Pair<E, Double>> weights, Random random) {
+        return weights
+                .stream()
+                .map(e -> new Pair<>(e.getFirst(), -Math.log(random.nextDouble()) / e.getSecond()))
+                .min((e0, e1) -> e0.getSecond().compareTo(e1.getSecond()))
+                .orElseThrow(IllegalArgumentException::new).getFirst();
+    }
+
     private static void scanVipPositions() {
         List<MapCell> cells = Arrays.asList(game.gameMap.cells).stream().flatMap((f) -> Arrays.asList(f).stream()).collect(Collectors.toList());
 
         Collections.sort(cells, (a, b) -> b.halite - a.halite);
 
-        final int top = (int)Math.sqrt(game.gameMap.height * game.gameMap.width) / 16;
-        
+        final int top = (int) Math.sqrt(game.gameMap.height * game.gameMap.width) / 16;
+
         vips.clear();
         vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) -> f.position).collect(Collectors.toList()));
     }
@@ -103,19 +112,22 @@ public class MyBot {
         } else {
             final List<Pair<Position, Direction>> closestVips = nearestTargets(ship, vips);
 
-            for (Direction dir : Direction.ALL_CARDINALS) {
+            List<Pair<Position, Double>> weights = new ArrayList<>();
+
+            Direction.ALL_CARDINALS.stream().forEachOrdered((dir) -> {
                 final Position p = ship.position.directionalOffset(dir);
                 directions.put(p, dir);
                 final int distanceAmp = game.gameMap.calculateDistance(p, game.me.shipyard.position);
                 final int vipAmp = closestVips.stream().anyMatch((v) -> v.getSecond() == dir) ? 4 : 1;
                 final int hall = Integer.max(1, game.gameMap.at(p).halite);
-                final int weight = Integer.max(1, hall * distanceAmp * vipAmp);
-                for (int i = 0; i < weight; ++i) {
-                    positions.add(p);
-                }
-            }
+                weights.add(new Pair<>(p, Double.max(1.0, 1.0 * hall * distanceAmp * vipAmp)));
+            });
 
-            Collections.shuffle(positions, rnd);
+            while (weights.size() > 0) {
+                final Position pos = getWeightedRandom(weights, rnd);
+                positions.add(pos);
+                weights.removeIf((p) -> Objects.equals(pos, p.getFirst()));
+            }
         }
 
         return positions.stream().map(directions::get).distinct().collect(Collectors.toList());
@@ -149,7 +161,7 @@ public class MyBot {
         // As soon as you call "ready" function below, the 2 second per turn timer will start.
         game.ready("QuantumGreedy");
 
-        final int maxShips = (int)Math.sqrt(game.gameMap.height * game.gameMap.width) / 2 ;
+        final int maxShips = (int) Math.sqrt(game.gameMap.height * game.gameMap.width) / 2;
 
         Log.log("Successfully created bot! My Player ID is " + game.myId
                 + ". Bot rng seed is " + rngSeed + ".");
