@@ -21,7 +21,9 @@ public class MyBot {
     }
 
     private static void scanVipPositions() {
-        List<MapCell> cells = Arrays.asList(game.gameMap.cells).stream().flatMap((f) -> Arrays.asList(f).stream()).collect(Collectors.toList());
+        List<MapCell> cells = Arrays.asList(game.gameMap.cells).stream()
+                .flatMap((f) -> Arrays.asList(f).stream())
+                .collect(Collectors.toList());
 
         Collections.sort(cells, (a, b) -> b.halite - a.halite);
 
@@ -31,14 +33,73 @@ public class MyBot {
         vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) -> f.position).collect(Collectors.toList()));
     }
 
-    private static boolean shouldBuildDrop(final Position p) {
+    private static boolean shouldAvoidBuildingShips(final int shipLimit) {
+        final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
+        final int vipProximityRange = edgeSize / 48;
+
+        if (vipProximityRange <= 0) {
+            return false;
+        }
+
+        if (game.me.halite > Constants.SHIP_COST + Constants.DROPOFF_COST) {
+            return false;
+        }
+
+        if (game.me.ships.size() < shipLimit / 3) {
+            return false;
+        }
+
+        return game.me.ships.values().stream().anyMatch((ship) -> {
+            Pair<Position, Direction> closestVip = nearestTargets(ship, vips).get(0);
+
+            if (game.gameMap.calculateDistance(ship.position, closestVip.getFirst()) > vipProximityRange) {
+                return false;
+            }
+
+            return canUseAsDropOff(closestVip.getFirst());
+        });
+    }
+
+    private static boolean canUseAsDropOff(final Position p) {
+        final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
+
+        final int dropOffProximityRange = edgeSize / 2;
         for (Dropoff df : game.me.dropoffs.values()) {
-            if (game.gameMap.calculateDistance(p, df.position) < (game.gameMap.height * 3 / 4)) {
+            if (game.gameMap.calculateDistance(p, df.position) < dropOffProximityRange) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static boolean shouldTurnIntoDropOff(final Ship ship) {
+        final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
+        final int maxDrops = edgeSize / 16;
+
+        if (game.me.dropoffs.size() >= maxDrops) {
+            return false;
+        }
+
+        if (!canUseAsDropOff(ship.position)) {
+            return false;
+        }
+
+        if (Objects.equals(ship.position, game.me.shipyard.position)) {
+            return false;
+        }
+
+        if (!vips.stream().anyMatch((v) -> Objects.equals(v, ship.position))) {
+            return false;
+        }
+
+        final int shipRange = edgeSize / 2;
+        final long nearbyShips = game.me.ships.values().stream()
+                .filter((s)
+                        -> game.gameMap.calculateDistance(s.position, ship.position) < shipRange)
+                .count();
+
+        return nearbyShips > 2;
     }
 
     private static List<Pair<Position, Direction>> nearestTargets(final Ship ship, final List<Position> targets) {
@@ -178,7 +239,8 @@ public class MyBot {
             boolean willSpawn = false;
             if (me.ships.size() < maxShips
                     && me.halite >= Constants.SHIP_COST
-                    && !gameMap.at(me.shipyard).isOccupied()) {
+                    && !gameMap.at(me.shipyard).isOccupied()
+                    && !shouldAvoidBuildingShips(maxShips)) {
                 me.halite -= Constants.SHIP_COST;
                 commandQueue.add(me.shipyard.spawn());
                 willSpawn = true;
@@ -186,9 +248,8 @@ public class MyBot {
 
             // TODO schimbat cu logica noua
             for (final Ship ship : me.ships.values()) {
-                if (shouldBuildDrop(ship.position)
-                        && me.halite > Constants.DROPOFF_COST
-                        && vips.contains(ship.position)) {
+                if (shouldTurnIntoDropOff(ship)
+                        && me.halite > Constants.DROPOFF_COST) {
                     me.halite -= Constants.DROPOFF_COST;
                     commandQueue.add(ship.makeDropoff());
                     continue;
