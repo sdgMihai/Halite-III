@@ -1,6 +1,8 @@
 
 import hlt.*;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.*;
 
@@ -8,7 +10,7 @@ public class MyBot {
 
     private static final Game game = new Game();
     private static final Random rnd = new Random();
-
+    private static final List<Pair<String, ArrayList<Long>>> unaveragedTime = new ArrayList<>();
     private static final List<Position> vips = new ArrayList<>();
 
     /* based on https://stackoverflow.com/a/11926952 */
@@ -21,6 +23,7 @@ public class MyBot {
     }
 
     private static void scanVipPositions() {
+        long start = System.currentTimeMillis();
         List<MapCell> cells = Arrays.asList(game.gameMap.cells).stream()
                 .flatMap((f) -> Arrays.asList(f).stream())
                 .collect(Collectors.toList());
@@ -31,9 +34,11 @@ public class MyBot {
 
         vips.clear();
         vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) -> f.position).collect(Collectors.toList()));
+        unaveragedTime.get(1).getSecond().add(System.currentTimeMillis() - start);
     }
 
     private static boolean shouldAvoidBuildingShips(final int shipLimit) {
+        long start = System.currentTimeMillis();
         final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
         final int vipProximityRange = edgeSize / 48;
 
@@ -49,7 +54,7 @@ public class MyBot {
             return false;
         }
 
-        return game.me.ships.values().stream().anyMatch((ship) -> {
+        boolean ceva =  game.me.ships.values().stream().anyMatch((ship) -> {
             Pair<Position, Direction> closestVip = nearestTargets(ship, vips).get(0);
 
             if (game.gameMap.calculateDistance(ship.position, closestVip.getFirst()) > vipProximityRange) {
@@ -58,22 +63,28 @@ public class MyBot {
 
             return canUseAsDropOff(closestVip.getFirst());
         });
+        unaveragedTime.get(2).getSecond().add(System.currentTimeMillis() - start);
+        return ceva;
     }
 
     private static boolean canUseAsDropOff(final Position p) {
+        long start = System.currentTimeMillis();
         final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
 
         final int dropOffProximityRange = edgeSize / 4;
         for (Dropoff df : game.me.dropoffs.values()) {
             if (game.gameMap.calculateDistance(p, df.position) < dropOffProximityRange) {
+                unaveragedTime.get(3).getSecond().add(System.currentTimeMillis() - start);
                 return false;
             }
         }
 
+        unaveragedTime.get(3).getSecond().add(System.currentTimeMillis() - start);
         return true;
     }
 
     private static boolean shouldTurnIntoDropOff(final Ship ship) {
+        long start = System.currentTimeMillis();
         final int edgeSize = (int) Math.sqrt(game.gameMap.height * game.gameMap.width);
         final int maxDrops = edgeSize / 16;
 
@@ -98,11 +109,12 @@ public class MyBot {
                 .filter((s)
                         -> game.gameMap.calculateDistance(s.position, ship.position) < shipRange)
                 .count();
-
+        unaveragedTime.get(4).getSecond().add(System.currentTimeMillis() - start);
         return nearbyShips > 2;
     }
 
     private static List<Pair<Position, Direction>> nearestTargets(final Ship ship, final List<Position> targets) {
+        long start = System.currentTimeMillis();
         List<Pair<Position, Direction>> nearest = new ArrayList<>();
 
         Direction minDir = null;
@@ -124,19 +136,23 @@ public class MyBot {
                 }
             }
         }
-
+        unaveragedTime.get(5).getSecond().add(System.currentTimeMillis() - start);
         return nearest;
     }
 
     private static List<Pair<Position, Direction>> nearestDrops(final Ship ship) {
+        long start = System.currentTimeMillis();
         List<Position> drops = new ArrayList<>();
         drops.add(game.me.shipyard.position);
         drops.addAll(game.me.dropoffs.values().stream().map((d) -> d.position).collect(Collectors.toList()));
 
-        return nearestTargets(ship, drops);
+        List<Pair<Position, Direction>> ceva = nearestTargets(ship, drops);
+        unaveragedTime.get(6).getSecond().add(System.currentTimeMillis() - start);
+        return ceva;
     }
 
     private static List<Direction> findDirections(final Ship ship) {
+        long start = System.currentTimeMillis();
         final List<Position> positions = new ArrayList<>();
         final Map<Position, Direction> directions = new HashMap<>();
 
@@ -191,24 +207,29 @@ public class MyBot {
             }
         }
 
-        return positions.stream().map(directions::get).distinct().collect(Collectors.toList());
+        List<Direction> ceva = positions.stream().map(directions::get).distinct().collect(Collectors.toList());
+        unaveragedTime.get(7).getSecond().add(System.currentTimeMillis() - start);
+        return ceva;
     }
 
     private static boolean canCrash(final Ship ship, final Direction direction) {
+        long start = System.currentTimeMillis();
         Position newLocation = ship.position.directionalOffset(direction);
 
         for (Direction dir : Direction.ALL_CARDINALS) {
             final Position p = newLocation.directionalOffset(dir);
 
             if (game.gameMap.at(p).isOccupied() && !game.gameMap.at(p).ship.owner.equals(game.myId)) {
+
                 return true;
             }
         }
 
+        unaveragedTime.get(8).getSecond().add(System.currentTimeMillis() - start);
         return game.gameMap.at(newLocation).isOccupied();
     }
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws IOException {
         final long rngSeed;
         if (args.length > 1) {
             rngSeed = Integer.parseInt(args[1]);
@@ -217,9 +238,17 @@ public class MyBot {
         }
         rnd.setSeed(rngSeed);
 
-        // At this point "game" variable is populated with initial map data.
-        // This is a good place to do computationally expensive start-up pre-processing.
-        // As soon as you call "ready" function below, the 2 second per turn timer will start.
+        // one array for each method - 8
+        unaveragedTime.add(new Pair<>("Start", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("scanVipPositions", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("shouldAvoidBuildingShips", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("canUseAsDropOff", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("shouldTurnIntoDropOff", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("nearestTargets", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("nearestDrops", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("findDirections", new ArrayList<>()));
+        unaveragedTime.add(new Pair<>("canCrash", new ArrayList<>()));
+
         game.ready("QuantumGreedy");
 
         final int maxShips = (int) Math.sqrt(game.gameMap.height * game.gameMap.width) / 2;
@@ -229,11 +258,22 @@ public class MyBot {
 
         for (;;) {
             game.updateFrame();
+            FileWriter fileWriter;
+            try {
+                fileWriter = new FileWriter("log.out", true);
+            } catch (Exception e) {
+                return;
+            }
+
+            for (Pair<String, ArrayList<Long>> pair : unaveragedTime) {
+                while (!pair.getSecond().isEmpty()) {
+                    pair.getSecond().remove(0);
+                }
+            }
+
             final Player me = game.me;
             final GameMap gameMap = game.gameMap;
-
             final ArrayList<Command> commandQueue = new ArrayList<>();
-
             scanVipPositions();
 
             boolean willSpawn = false;
@@ -246,8 +286,9 @@ public class MyBot {
                 willSpawn = true;
             }
 
-            // TODO schimbat cu logica noua
             for (final Ship ship : me.ships.values()) {
+
+                // Bucata 1
                 if (shouldTurnIntoDropOff(ship)
                         && me.halite > Constants.DROPOFF_COST) {
                     me.halite -= Constants.DROPOFF_COST;
@@ -256,6 +297,7 @@ public class MyBot {
                 }
 
                 Direction goodDir = null;
+                // Bucata 2
                 for (Direction dir : findDirections(ship)) {
                     if (!canCrash(ship, dir)) {
                         goodDir = dir;
@@ -278,7 +320,33 @@ public class MyBot {
                     commandQueue.add(ship.move(gameMap.naiveNavigate(ship, pos)));
                 }
             }
+            ArrayList<Pair <String, Double>> averageTime = new ArrayList<>();
+            ArrayList<Pair <String, Double>> averagePercentageTime = new ArrayList<>();
+            double allTime = 0.0;
+            for (Pair<String, ArrayList<Long>> pair : unaveragedTime) {
+                Long sum = 0L;
+                for (Long elem : pair.getSecond()) {
+                    sum += elem;
+                }
+                if (pair.getSecond().size() == 0) {
+                    averageTime.add(new Pair<>(pair.getFirst(), 0.0));
+                    continue;
+                }
+                allTime += sum.doubleValue() / (double) pair.getSecond().size();
+                averageTime.add(new Pair<>(pair.getFirst(), sum.doubleValue() / (double) pair.getSecond().size()));
+            }
 
+            for (Pair<String, Double> pair : averageTime) {
+                averagePercentageTime.add(new Pair<>
+                        (pair.getFirst(), (pair.getSecond() * 100) / allTime));
+            }
+
+            fileWriter.write("Methods percentage time for round: " + game.turnNumber + "\n");
+            for (Pair<String, Double> pair : averageTime) {
+                fileWriter.write(pair.getFirst() + ": " + pair.getSecond() + " ms\n");
+            }
+            fileWriter.write("\n");
+            fileWriter.close();
             game.endTurn(commandQueue);
         }
     }
