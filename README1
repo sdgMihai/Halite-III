@@ -5,16 +5,16 @@ Halite 3, team INTegralistii
 Continut proiect:
 	/hlt - contine clasele venite odata cu scheletul
 	MyBot.java - contine logica bot ului si strategia implementata
-	MyUtils.java - contine functii utile in rezolvarea task urilor
 	README
 	/environment pentru compilare si testare
-
+    /replays contine replay - urile jocului
+    /run.py scriptul python de check
 
 
 Strategia 
 	Rezumatul flow ului programului
 	1.Botul incepe prin a detecta si inregistra pozitiile vip. 
-	2.Apoi daca sunt indeplinite conditiile de spawn, mai creaza un Ship. 
+	2.Apoi daca sunt indeplinite conditiile de spawn, mai creeaza un Ship. 
 	3.Urmeaza parcurgerea navelor si luarea unei decizii pentru fiecare.
 		a)Se verifica daca corabia curenta trebuie sa fie transformata in
 		dropoff.
@@ -28,7 +28,7 @@ Strategia
 
 	Strategia in sine:
 	Corabiile sunt create in limita unui numar calculat in functie de dimensiunile
-	hartii. Fiecare corabia este incurajata sa se departeze de shipyard si sa 
+	hartii. Fiecare corabie este incurajata sa se departeze de shipyard si sa 
 	caute pozitii cat mai pline de halita si apropiate de vip.
 
 
@@ -39,7 +39,7 @@ Definirea termenilor si a conditiilor pentru luarea deciziilor:
 	obtinuta prin apelul functiei scanVipPositions().
 
 	2)Cand trebuie sa nu fie adaugate corabii noi?
-	Daca mai este halita sa poata fi adaugata o corabia si sa fie facuta dropoff,
+	Daca mai este halita sa poata fi adaugata o corabie si sa fie facuta dropoff,
 	daca spawn ul este proxim unui vip position, daca nu este indeplinita conditia
 	de limitare a nr. de corabii atunci pot fi adaugate.
 	Insa daca poate fi folosit ca Dropoff cea mai apropiata pozitie de Vip, atunci
@@ -49,13 +49,13 @@ Definirea termenilor si a conditiilor pentru luarea deciziilor:
 	Daca nu este in proximitatea altui Dropoff.
 
 	4)Ar trebui sa facem un Dropoff?
-	Daca nu e in proximitate altui Dropoff, si sunt destul corabii care pot fi
+	Daca nu e in proximitatea altui Dropoff, si sunt destul corabii care pot fi
 	deservite de el, atunci merita.
 
 	5)Care este directia cea mai buna de deplasare?
-	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia ca prag ul de
+	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia ca pragul de
 	halita din joc scade incetul cu incetul invers in raport cu procentajul nr de pasi 
-	care mai sunt nejucati,	vom incerca vom decide daca trebuie 
+	care mai sunt nejucati,	vom incerca/vom decide daca trebuie 
 	sa	intoarcem corabia la baza sau nu. 
 		Daca halita la bord este peste prag amintit, atunci trebuie sa intoarcem
 		corabia la cel mai apropiat dropoff. Intoarcerea este asigurata sa nu fie
@@ -66,11 +66,11 @@ Definirea termenilor si a conditiilor pentru luarea deciziilor:
 		pozitia vip proxima.
 
 Complexitati:
-	Complexitate particulare necesare in calculare complexitatii generale:
+	Complexitatati particulare necesare in calculare complexitatii generale:
 	- Temporale
-	Bucla de parcurgerea a turelor din main are o complexitate Teta(N),
+	Bucla de parcurgere a turelor din main are o complexitate Teta(N),
 											unde N este nr de ture ale jocului.
-	Scanarea pozitiilor de vip are complexitate Teta(MlogM), unde M este numarul
+	Scanarea pozitiilor de vip are complexitate O(MlogM), unde M este numarul
 	de celule ale hartii.
 	Luarea deciziilor pentru corabii este O(maxShips), unde maxShips este 
 	(int)Math.sqrt(inaltimea_hartii * latimea_hartii) / 2.
@@ -80,6 +80,13 @@ Complexitati:
 			/* pentru ca selectarea directiei depinde daca vrem sa intoarcem corabia 
 			la baza sau vrem sa mergem spre un vip*/
 		Toate celelalte decizii pot fi aproximate la O(1).
+	Calculam complexitatea buclei interioare:
+	    maxShips * G = ((int)Math.sqrt(inaltimea_hartii * latimea_hartii) / 2) *
+    ((int) Math.sqrt(inaltimea_hartii * latimea_hartii) / 16) *
+        inaltimea_hartii * latimea_hartii /100
+    = M^2 /3200 -> complexitatea luarii deciziei pentru toate navele este
+    O(nrCelule^2).
+
 
 	- Spatiale
 	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care nu sunt atat
@@ -90,9 +97,9 @@ Complexitati:
 
 	Complexitate generala:
 	- Temporala:
-	O prima aproximare este O(N * (MlogM + maxShips * G)).
-	Luand in considerare ca numarul corabiilor este redus in raport cu numarul celulelor
-	ajungem la solutia O(N * M * logM).
+	O prima aproximare este O(N * (MlogM + M^2)).
+	logM < M , oricare M > 1 -> Concluzia este O(N * M^2).
+
 
 
 	- Spatiala:
@@ -107,9 +114,20 @@ Surse de inspiratie:
 	https://stackoverflow.com/a/11926952
 	
 Roluri:
-	Victoria: a lucrat in toate, remarcandu-re exceptional la scrierea si gandirea codului. 
+	Victoria: a lucrat in toate, remarcandu-se exceptional la scrierea si gandirea codului. 
 	De asemenea a lucrat si in cercetare + optimizare si testare.
 	Cezar: a lucrat o varianta functionala(care trece testele), realizand un punct de plecare
 	solid. A realizat cercetare( a descoperit ca solutie folosirea greedy).
-	Octavian Grosu: suport moral intensiv.
-	Mihai: a realizat README.
+	Octavian Grosu: a operat in debugging si la logica matematica a programului + corectare typos
+	Mihai: a realizat README si a facut comparatii statistice intre variantele alcatuite de noi,
+	pentru a putea decide ce idee din algoritm trebuie pastrata
+
+
+Rulare :
+	Compilare:deja facuta, dar poate fi refacuta prin rularea urmatoarelor comenzi in folder - ul environment:
+	cmake .
+	make -j4
+	Apoi ne intoarcem:
+	cd ../
+	si rulam checker - ul:
+	python ./run.py --cmd "java MyBot 0" --round 1

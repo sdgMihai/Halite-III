@@ -1,0 +1,16 @@
+getWeightedRandom - Teta(weights.lengh())
+
+scanVipPositions - O(MlogM)
+
+shouldAvoidBuildingShips - O(max(maxDropoffs, maxVips) * maxShips)
+
+canUseAsDropOff - O(maxDropoffs)
+
+shouldTurnIntoDropOff - O(maxShips)
+
+nearestTargets - O(max(maxDropoffs, maxVips))
+
+nearestDropoffs - O(maxDropoffs)
+
+findDirections - O(nrCelule^2)
+
