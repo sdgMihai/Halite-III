@@ -1,0 +1,3 @@
+repository='external project URL'
+module='https://github.com/facebook/zstd/archive/v1.3.4.zip'
+tag='SHA256=76f3e6cadd9e1714cad7b550e53b82d4a5a5f9e08fbc0b3eb54abd0d0ebeb42d'

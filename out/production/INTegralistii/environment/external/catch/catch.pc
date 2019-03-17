@@ -1,0 +1,6 @@
+includedir=/usr/local/include
+
+Name: Catch
+Description: Testing library for C++
+Version: 2.2.3
+Cflags: -I${includedir} -I${includedir}/catch

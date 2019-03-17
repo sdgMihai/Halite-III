@@ -1,0 +1,1 @@
+cmd='/usr/bin/cmake;/home/student/facultate/an2/sem2/pa/Proiect/INTegralistii/environment/external/zstd/build/cmake/'

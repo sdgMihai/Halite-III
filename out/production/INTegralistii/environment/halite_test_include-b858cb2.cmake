@@ -1,0 +1,5 @@
+if(EXISTS "/home/student/facultate/an2/sem2/pa/Proiect/INTegralistii/environment/halite_test_tests-b858cb2.cmake")
+  include("/home/student/facultate/an2/sem2/pa/Proiect/INTegralistii/environment/halite_test_tests-b858cb2.cmake")
+else()
+  add_test(halite_test_NOT_BUILT-b858cb2 halite_test_NOT_BUILT-b858cb2)
+endif()
