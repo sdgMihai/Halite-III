@@ -18,9 +18,12 @@ Strategia
 	3.Urmeaza parcurgerea navelor si luarea unei decizii pentru fiecare.
 		a)Se verifica daca corabia curenta trebuie sa fie 
 		  transformata in dropoff.
-		b)Daca nu, hotaraste directia corecta de deplasare a 			  navei (incluzand sa stea pe loc).
+		b)Daca nu, hotaraste directia corecta de deplasare a
+ 		  navei (incluzand sa stea pe loc).
 		Daca nu a gasit o directie buna de deplasare -> va sta pe loc.
-		Daca exista o directie buna de deplasare, insa corabia nu e 			plina si mai poate fi colectata halita sau nu are destula 			halita sa plece de pe pozitia curenta va sta pe loc.
+		Daca exista o directie buna de deplasare, insa corabia nu e
+ 		plina si mai poate fi colectata halita sau nu are destula
+ 		halita sa plece de pe pozitia curenta va sta pe loc.
 		Altfel se va deplasa in directia calculata.(cea mai buna)
 	Strategia in sine:
 	Corabiile sunt create in limita unui numar calculat in functie de
@@ -90,11 +93,11 @@ Complexitati:
 
 	- Spatiale
 	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care 
-	nu sunt atat de costisitoare in cadrul player ului -- O(nr maxim de 		nave + nr maxim de dropoff - uri),
-	iar functiile chemate folosesc vectori, liste aditionale care vor
-	contine pozitii din harta, respectiv dropoff - uri -- O(M) (unde M este
- 	definit anterior) si deci mai mare ca numarul de nave, implicit deci si
-	de dropoff - uri.
+	nu sunt atat de costisitoare in cadrul player ului -- O(nr maxim de
+ 	nave + nr maxim de dropoff - uri), iar functiile chemate folosesc
+	vectori, liste aditionale care vor contine pozitii din harta, respectiv
+	dropoff - uri -- O(M) (unde M este definit anterior) si deci mai mare
+ 	ca numarul de nave, implicit deci si de dropoff - uri.
 
 	Complexitate generala:
 	- Temporala:
