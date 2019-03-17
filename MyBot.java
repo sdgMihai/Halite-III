@@ -104,32 +104,3 @@ public class MyBot {
         }
     }
 }
-
-
-/*
-public static void main(String[] args) {
-
-        final long rngSeed;
-        if (args.length > 1) {
-            rngSeed = Integer.parseInt(args[1]);
-        } else {
-            // constant seed number for constant results and a deterministic solution over all
-            rngSeed = 42;
-        }
-        victory.rnd.setSeed(rngSeed);
-
-        Log.log("Successfully created bot! My Player ID is " + victory.game.myId
-                + ". Bot rng seed is " + rngSeed + ".");
-        if (args.length > 1) {
-            rngSeed = Integer.parseInt(args[1]);
-        } else {
-            // constant seed number for constant results and a deterministic solution over all
-            rngSeed = 42;
-        }
-        victory.rnd.setSeed(rngSeed);
-        victory.game.ready("QuantumGreedy");
-
-        for(;;) {
-        victory.update();
-        }
- */
