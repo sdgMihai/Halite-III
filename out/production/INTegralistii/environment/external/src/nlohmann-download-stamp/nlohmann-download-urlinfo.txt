@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/nlohmann/json/releases/download/v3.1.2/include.zip'
-tag='SHA256=495362ee1b9d03d9526ba9ccf1b4a9c37691abe3a642ddbced13e5778c16660c'
