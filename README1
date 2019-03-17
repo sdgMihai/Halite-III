@@ -1,0 +1,115 @@
+Ultima modificare : 17 martie 2019
+
+Halite 3, team INTegralistii
+
+Continut proiect:
+	/hlt - contine clasele venite odata cu scheletul
+	MyBot.java - contine logica bot ului si strategia implementata
+	MyUtils.java - contine functii utile in rezolvarea task urilor
+	README
+	/environment pentru compilare si testare
+
+
+
+Strategia 
+	Rezumatul flow ului programului
+	1.Botul incepe prin a detecta si inregistra pozitiile vip. 
+	2.Apoi daca sunt indeplinite conditiile de spawn, mai creaza un Ship. 
+	3.Urmeaza parcurgerea navelor si luarea unei decizii pentru fiecare.
+		a)Se verifica daca corabia curenta trebuie sa fie transformata in
+		dropoff.
+		b)Daca nu, hotaraste directia corecta de deplasare a navei(incluzand
+		 sa stea pe loc).
+		Daca nu a gasit o directie buna de deplasare -> va sta pe loc.
+		Daca exista o directie buna de deplasare, insa corabia nu e plina si
+		mai poate fi colectata halita sau nu are destula halita sa plece de
+		pe pozitia curenta va sta pe loc.
+		Altfel se va deplasa in directia calculata.(cea mai buna)
+
+	Strategia in sine:
+	Corabiile sunt create in limita unui numar calculat in functie de dimensiunile
+	hartii. Fiecare corabia este incurajata sa se departeze de shipyard si sa 
+	caute pozitii cat mai pline de halita si apropiate de vip.
+
+
+
+Definirea termenilor si a conditiilor pentru luarea deciziilor:
+	1)Pozitii vip:
+	Sunt pozitiile care au cea mai multa halita, si sunt salvate intr-o lista
+	obtinuta prin apelul functiei scanVipPositions().
+
+	2)Cand trebuie sa nu fie adaugate corabii noi?
+	Daca mai este halita sa poata fi adaugata o corabia si sa fie facuta dropoff,
+	daca spawn ul este proxim unui vip position, daca nu este indeplinita conditia
+	de limitare a nr. de corabii atunci pot fi adaugate.
+	Insa daca poate fi folosit ca Dropoff cea mai apropiata pozitie de Vip, atunci
+	trebuie sa nu mai adaugam noi corabii.
+
+	3)Putem sa folosim o pozitie ca Dropoff?
+	Daca nu este in proximitatea altui Dropoff.
+
+	4)Ar trebui sa facem un Dropoff?
+	Daca nu e in proximitate altui Dropoff, si sunt destul corabii care pot fi
+	deservite de el, atunci merita.
+
+	5)Care este directia cea mai buna de deplasare?
+	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia ca prag ul de
+	halita din joc scade incetul cu incetul invers in raport cu procentajul nr de pasi 
+	care mai sunt nejucati,	vom incerca vom decide daca trebuie 
+	sa	intoarcem corabia la baza sau nu. 
+		Daca halita la bord este peste prag amintit, atunci trebuie sa intoarcem
+		corabia la cel mai apropiat dropoff. Intoarcerea este asigurata sa nu fie
+		aceeasi pentru toate corabiile.
+		Altfel putem cauta in continuare halita. Daca putem cauta in continuare
+		atunci punem conditia incurajarii Ship ului sa se departeze de shipyard
+		si sa se indrepte spre pozitii cu halita mai multa si mai apropiata de
+		pozitia vip proxima.
+
+Complexitati:
+	Complexitate particulare necesare in calculare complexitatii generale:
+	- Temporale
+	Bucla de parcurgerea a turelor din main are o complexitate Teta(N),
+											unde N este nr de ture ale jocului.
+	Scanarea pozitiilor de vip are complexitate Teta(MlogM), unde M este numarul
+	de celule ale hartii.
+	Luarea deciziilor pentru corabii este O(maxShips), unde maxShips este 
+	(int)Math.sqrt(inaltimea_hartii * latimea_hartii) / 2.
+		In luarea deciziilor, cea mai costisitoare decizie este gasirea
+		directiilor posibile in care va merge nava, avand o complexitate O(G), 
+		unde G este -> max(nr de dropoff, nr de pozitii vip).
+			/* pentru ca selectarea directiei depinde daca vrem sa intoarcem corabia 
+			la baza sau vrem sa mergem spre un vip*/
+		Toate celelalte decizii pot fi aproximate la O(1).
+
+	- Spatiale
+	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care nu sunt atat
+	de costisitoare in cadrul player ului -- O(nr maxim de nave + nr  maxim de dropoff - uri),
+	iar functiile chemate folosesc vectori, liste aditionale care vor contine
+	pozitii din harta, respectiv dropoff - uri -- O(M) (unde M este definit anterior si
+	deci mai mare ca numarul de nave, implicit deci si de dropoff - uri. 
+
+	Complexitate generala:
+	- Temporala:
+	O prima aproximare este O(N * (MlogM + maxShips * G)).
+	Luand in considerare ca numarul corabiilor este redus in raport cu numarul celulelor
+	ajungem la solutia O(N * M * logM).
+
+
+	- Spatiala:
+	La un moment de timp putem avea alocate si datele player - ului si datele aditionale
+	folosite de logica(functiile) programului. Asadar O(maxShips + M).
+
+Algoritmi:
+	Am urmarit un algoritm greedy. Sunt utilizate de asemenea pentru eficienta si concizie
+	stream - uri java si functii anonime.
+
+Surse de inspiratie:
+	https://stackoverflow.com/a/11926952
+	
+Roluri:
+	Victoria: a lucrat in toate, remarcandu-re exceptional la scrierea si gandirea codului. 
+	De asemenea a lucrat si in cercetare + optimizare si testare.
+	Cezar: a lucrat o varianta functionala(care trece testele), realizand un punct de plecare
+	solid. A realizat cercetare( a descoperit ca solutie folosirea greedy).
+	Octavian Grosu: suport moral intensiv.
+	Mihai: a realizat README.
