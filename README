@@ -1,159 +1,78 @@
-Ultima modificare : 17 martie 2019
+Ultima modificare: 03.03.2019
 
-Halite 3, team INTegralistii
+Continutul repository-ului:
 
-Continut proiect:
-	/hlt - contine clasele venite odata cu scheletul
-	MyBot.java - contine logica bot ului si strategia implementata
-	README
-	/environment pentru compilare si testare
-    /replays contine replay - urile jocului
-    /run.py scriptul python de check
+ * environment/               - engine-ul jocului (putin modificat pentru a permite evaluarea facila a proiectelor)
+ * bots/                      - folder cu botii oficiali
+ * replays/                   - folder cu rezultatele rularii botului (fisiere tip *.hlt, comprimate)
+ * replays-readable/          - folder cu rezultatele rularii botului (fisiere tip *.hlt, necomprimate)
+ * run.py                     - scriptul de evaluare
+ * halite-resources.zip       - arhiva cu continutul acestui repository
+ * upload_archive.py          - script pentru upload-ul arhivei cu solutia de la etapa curenta pe git
 
+===============
+Prerequisites
+===============
 
-Strategia 
-	Rezumatul flow ului programului
-	1.Botul incepe prin a detecta si inregistra pozitiile vip. 
-	2.Apoi daca sunt indeplinite conditiile de spawn, mai creeaza un Ship. 
-	3.Urmeaza parcurgerea navelor si luarea unei decizii pentru fiecare.
-		a)Se verifica daca corabia curenta trebuie sa fie 
-		  transformata in dropoff.
-		b)Daca nu, hotaraste directia corecta de deplasare a
- 		  navei (incluzand sa stea pe loc).
-		Daca nu a gasit o directie buna de deplasare -> va sta pe loc.
-		Daca exista o directie buna de deplasare, insa corabia nu e
- 		plina si mai poate fi colectata halita sau nu are destula
- 		halita sa plece de pe pozitia curenta va sta pe loc.
-		Altfel se va deplasa in directia calculata.(cea mai buna)
-	Strategia in sine:
-	Corabiile sunt create in limita unui numar calculat in functie de
-	dimensiunile hartii. Fiecare corabie este incurajata sa se departeze
-	de shipyard si sa caute pozitii cat mai pline de halita si
-	apropiate de vip.
+Pentru rularea scriptului de evaluare aveți nevoie de Python (>= 2.7.2) si cmake (>=3.5).
 
+sudo apt-get install cmake
 
+Evaluarea proiectului se va face pe un sistem Linux, 64 biti.
 
-Definirea termenilor si a conditiilor pentru luarea deciziilor:
-	1)Pozitii vip:
-	Sunt pozitiile care au cea mai multa halita, si sunt salvate intr-o
- 	lista obtinuta prin apelul functiei scanVipPositions().
+===============
+Creare + testare + upload arhiva
+===============
+Pentru a usura procesul de corectare, folositi scriptul create_archive.py.
+Acesta construieste arhiva cu solutia pentru etapa curenta si va ofera posibilitatea
+de a o testa/salva pe git.
 
-	2)Cand trebuie sa nu fie adaugate corabii noi?
-	Daca mai este halita sa poata fi adaugata o corabie si sa fie facuta
-	dropoff, daca spawn ul este proxim unui vip position, daca nu este
- 	indeplinita conditia de limitare a nr. de corabii atunci pot fi
- 	adaugate. Insa daca poate fi folosit ca Dropoff cea mai apropiata
-	pozitie de Vip, atunci trebuie sa nu mai adaugam noi corabii.
+Exemplu:
 
-	3)Putem sa folosim o pozitie ca Dropoff?
-	Daca nu este in proximitatea altui Dropoff.
-
-	4)Ar trebui sa facem un Dropoff?
-	Daca nu e in proximitatea altui Dropoff, si sunt destul corabii 
-	care pot fi deservite de el, atunci merita.
-
-	5)Care este directia cea mai buna de deplasare?
-	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia
-	ca pragul de halita din joc scade incetul cu incetul invers in raport
-	cu procentajul nr de pasi care mai sunt nejucati, vom incerca/vom
-	decide daca trebuie sa intoarcem corabia la baza sau nu. 
-	Daca halita la bord este peste pragul amintit, atunci trebuie sa
-	intoarcem corabia la cel mai apropiat dropoff. Intoarcerea este
-	asigurata sa nu fie aceeasi pentru toate corabiile.
-	Altfel putem cauta in continuare halita. Daca putem cauta in continuare
-	atunci punem conditia incurajarii Ship ului sa se departeze de shipyard
-	si sa se indrepte spre pozitii cu halita mai multa si mai apropiata de
-	pozitia vip proxima.
-
-Complexitati:
-	Complexitatati particulare necesare in calcularea 
-	complexitatii generale:
-	- Temporale
-	Bucla de parcurgere a turelor din main are o complexitate Teta(N),
-	unde N este numarul de ture ale jocului.
-	Scanarea pozitiilor de vip are complexitate O(MlogM), unde M este
-	numarul de celule ale hartii.
-	Luarea deciziilor pentru corabii este O(maxShips), unde maxShips este 
-	(int)Math.sqrt(inaltimea_hartii * latimea_hartii) / 2.
-		In luarea deciziilor, cea mai costisitoare decizie este gasirea
-		directiilor posibile in care va merge nava, avand o
-		complexitate O(G), unde G este -> 
-		max(nr de dropoff, nr de pozitii vip).
-		/* pentru ca selectarea directiei depinde daca vrem sa 
-		   intoarcem corabia la baza sau vrem sa mergem spre un vip*/
-		Toate celelalte decizii pot fi aproximate la O(1).
-	Calculam complexitatea buclei interioare:
-	    maxShips * G = ((int)Math.sqrt(inaltimea_hartii * 
-			latimea_hartii) / 2) * ((int) Math.sqrt(
-			inaltimea_hartii * latimea_hartii) / 16) *
-        		inaltimea_hartii * latimea_hartii /100
-    = M^2 /3200 -> complexitatea luarii deciziei pentru toate navele este
-    O(nrCelule^2).
+* C++:
+    python ./create_archive.py --etapa 1 --makefile Makefile --readme Readme --files MyBot.cpp hlt/* --test ./MyBot
+* Java
+    python ./create_archive.py --etapa 1 --makefile Makefile --readme Readme --files MyBot.java hlt/* --test "java MyBot"
 
 
-	- Spatiale
-	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care 
-	nu sunt atat de costisitoare in cadrul player ului -- O(nr maxim de
- 	nave + nr maxim de dropoff - uri), iar functiile chemate folosesc
-	vectori, liste aditionale care vor contine pozitii din harta, respectiv
-	dropoff - uri -- O(M) (unde M este definit anterior) si deci mai mare
- 	ca numarul de nave, implicit deci si de dropoff - uri.
+Parametrii:
+    -- etapa      Indicele etapei (1, 2, 3, 4)
+    -- makefile   Path spre fisierul makefile (sau CMakeLists.txt)
+    -- readme     Path spre fisierul Readme (un simplu fisier text)
+    -- files      Path spre toate sursele necesare rularii botului vostru.
+    -- test       (Optional) Comanda de rulare a botului (eg. java MyBot). 
+		          Daca primeste acest parametru, scriptul testeaza noua arhiva
+                  folosind scriptul oficial de evaluare.
+    -- upload     (Optional) Adauga arhiva pe git, in branch-ul curent.
 
-	Complexitate generala:
-	- Temporala:
-	O prima aproximare este O(N * (MlogM + M^2)).
-	logM < M , oricare M > 1 -> Concluzia este O(N * M^2).
+===============
+Testare
+===============
 
+Scriptul de evaluare ./run.py va rula "make" înainte de execuția propriu-zisă.
 
+Pentru a-l folosi:
 
-	- Spatiala:
-	La un moment de timp putem avea alocate si datele player - ului 
-	si datele aditionale folosite de logica(functiile) programului. 
-	Asadar O(maxShips + M).
+* Descărcați întreaga arhivă într-un folder nou.
+* Copiați sursele voastre/makefile in același folder.
+* Apelați “run.py” cu argumentele specificate mai jos.
 
-Algoritmi:
-	Am urmarit un algoritm greedy. Sunt utilizate de asemenea pentru
- 	eficienta si concizie stream - uri java si functii anonime.
+(Scriptul create_archive.py, mentionat mai sus, simuleaza exact pasii mentionati mai devreme)
 
-Profiling:
-	
-	Am realizat o cronometrare in milisecunde a functiilor, urmata de o
-	medie aritmetica a rezultatelor. S-a obtinut media:
-	scanVipPositions: 41.888888888888886 ms
-	shouldAvoidBuildingShips: 0.0 ms
-	canUseAsDropOff: 0.03988095238095238 ms
-	ShouldTurnIntoDropOff: 1.2222222222222223 ms
-	nearestTargets: 0.5501384300146245 ms
-	nearestDropOffs: 1.1420607170607173 ms
-	findDirections: 6.318318564151909 ms
-	canCrash: 0.11719584165404598 ms
-	Fara media realizata pe toate rundele se optineau si valori de 300ms,
-	dar, in timp, se amortizeaza. 
+Exemplu rulare:
 
-Surse de inspiratie:
-	https://stackoverflow.com/a/11926952
-	https://en.m.wikipedia.org/wiki/Exponential_distribution
-	
-Roluri:
-	Victoria: a lucrat in toate, remarcandu-se exceptional la scrierea si
-	gandirea codului. De asemenea a lucrat si in cercetare + optimizare si
-	testare.
-	Cezar: a lucrat o varianta functionala(care trece testele), realizand
- 	un punct de plecare solid. A realizat cercetare(a descoperit ca solutie
-	folosirea greedy).
-	Octavian Grosu: a operat in debugging si la logica matematica a
- 	programului + corectare typos.
-	Mihai: a realizat README si a facut comparatii statistice intre
-	variantele alcatuite de noi, pentru a putea decide ce idee din algoritm
- 	trebuie pastrata.
+* C++ Bot:
+    python ./run.py --cmd "./MyBot" --round 1
 
+* Java Bot:
+    python ./run.py --cmd "java MyBot" --round 1
 
-Rulare :
-	Compilare:deja facuta, dar poate fi refacuta prin rularea urmatoarelor
- 	comenzi in folder - ul environment:
-	cmake .
-	make -j4
-	Apoi ne intoarcem:
-	cd ../
-	si rulam checker - ul:
-	python ./run.py --cmd "java MyBot 0" --round 1
+* Python Bot:
+    python ./run.py --cmd "python MyBot.py" --round 1
+
+Parametrii:
+    -- cmd        Comanda de execuție pentru bot (trebuie sa fie validă pentru locația curentă)
+    -- round      (Optional) Indicele etapei (1, 2, 3), default 1
+    -- map        (Optional) Indicele unei harti specifice pe care vreti sa testati (indexat de la 0)
+    -- clean_logs (Optional) Dupa testare, șterge fișierele de log/replays, apeleaza make clean
+    -- clean      (Optional) Inainte de a apela make, scriptul va apela "make clean"
