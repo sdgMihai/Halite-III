@@ -45,7 +45,8 @@ public class MyBot {
 
         vips.clear();
         // vips will contain the top% of cells
-        vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) -> f.position).collect(Collectors.toList()));
+        vips.addAll(cells.stream().limit(cells.size() * top / 100).map((f) ->
+                    f.position).collect(Collectors.toList()));
     }
 
     /**
@@ -88,7 +89,8 @@ public class MyBot {
             // checks if there is a vip position outside the proximity range
             // if it were within the proximity range, it would have been more
             // favorable to turn into a drop off instead of building a ship
-            if (game.gameMap.calculateDistance(ship.position, closestVip.getFirst()) > vipProximityRange) {
+            if (game.gameMap.calculateDistance(
+                    ship.position, closestVip.getFirst()) > vipProximityRange) {
                 // this ship is too far away from a vip position, so we discard
                 // it
                 return false;
@@ -112,7 +114,7 @@ public class MyBot {
         final int dropOffProximityRange = edgeSize / 4;
         // we check for every drop off on the map
         for (Dropoff df : game.me.dropoffs.values()) {
-            // if the distance drom the current position to it is within the
+            // if the distance from the current position to it is within the
             // proximity range
             if (game.gameMap.calculateDistance(p, df.position) < dropOffProximityRange) {
                 // it is too close to the drop off
@@ -149,7 +151,7 @@ public class MyBot {
         }
         // checks if there is a vip position on which to turn the ship into a
         // drop off
-        if (!vips.stream().anyMatch((v) -> Objects.equals(v, ship.position))) {
+        if (vips.stream().noneMatch((v) -> Objects.equals(v, ship.position))) {
             return false;
         }
         // the minimum limit of ships to be around a drop off
@@ -172,7 +174,8 @@ public class MyBot {
      * @param targets list of targets (they can be drop offs or vip positions)
      * @return list of positions and directions towards those positions
      */
-    private static List<Pair<Position, Direction>> nearestTargets(final Ship ship, final List<Position> targets) {
+    private static List<Pair<Position, Direction>> nearestTargets(final Ship ship,
+                                                                  final List<Position> targets) {
         List<Pair<Position, Direction>> nearest = new ArrayList<>();
 
         Direction minDir = null;
@@ -210,7 +213,8 @@ public class MyBot {
         // adds the shipyard as a drop off
         drops.add(game.me.shipyard.position);
         // adds all the drop offs positions to the list
-        drops.addAll(game.me.dropoffs.values().stream().map((d) -> d.position).collect(Collectors.toList()));
+        drops.addAll(game.me.dropoffs.values().stream().map((d) ->
+                    d.position).collect(Collectors.toList()));
 
         return nearestTargets(ship, drops);
     }
@@ -268,7 +272,7 @@ public class MyBot {
             // shuffle the above mentioned positions in order to avoid using the
             // same routes.
             // note that we are doing this separately in order to ensure that
-            // the prefered routes are always the first ones to be considered
+            // the preferred routes are always the first ones to be considered
             // and use the alternatives only if they are not available
             Collections.shuffle(randPositions, rnd);
             positions.addAll(randPositions);
@@ -288,7 +292,8 @@ public class MyBot {
                 // the weight of the position is amplified by the distance from
                 // the shipyard, in order to encourage the ships to move away
                 // from the shipyard itself
-                final int distanceAmp = game.gameMap.calculateDistance(p, game.me.shipyard.position);
+                final int distanceAmp = game.gameMap.calculateDistance(p,
+                                        game.me.shipyard.position);
                 // directions that go towards a vip location are more preferred
                 // and as such have an amplifier of 4
                 final int vipAmp = closestVips.stream().anyMatch((v) -> v.getSecond() == dir) ? 4 : 1;
@@ -300,7 +305,7 @@ public class MyBot {
                 // amplifier
                 final double weight = Double.max(1.0, 1.0 * hall * distanceAmp * vipAmp);
                 weights.add(new Pair<>(p, weight));
-            };
+            }
             // sample the positions based on their weights.
             // positions with higher weights are more likely to come before
             // positions with lower weights
@@ -321,7 +326,8 @@ public class MyBot {
         // we must convert each position into the direction which the ship must
         // take to reach it. as such, we map the direction using the `direction`
         // map, which maps each location with the corresponding direction
-        return positions.stream().map((p) -> directions.get(p)).distinct().collect(Collectors.toList());
+        return positions.stream().map((p) ->
+                directions.get(p)).distinct().collect(Collectors.toList());
     }
 
     /**
@@ -340,10 +346,20 @@ public class MyBot {
             final Position p = newLocation.directionalOffset(dir);
             // if there is an opponent ship on that position, they can crash 
             if (game.gameMap.at(p).isOccupied() && !game.gameMap.at(p).ship.owner.equals(game.myId)) {
-                return true;
+                // consider crashing only if the position is not a structure
+                if (!game.gameMap.at(p).hasStructure()) {
+                    return true;
+                }
             }
         }
-        // checks if there is a ship on the position I want to move to 
+        // checks if there is a ship on the position I want to move to and the position is not the
+        // shipyard. If the shipyard is the position return it as a good position
+        if (game.gameMap.at(newLocation).hasStructure() &&
+                game.gameMap.at(newLocation).structure.equals(game.me.shipyard) &&
+                game.gameMap.at(newLocation).isOccupied() &&
+                !game.gameMap.at(newLocation).ship.owner.equals(game.me.id)) {
+            return !game.gameMap.at(newLocation).isOccupied();
+        }
         return game.gameMap.at(newLocation).isOccupied();
     }
 
@@ -384,7 +400,7 @@ public class MyBot {
                     // and we have enough halite to build a new ship
                     && me.halite >= Constants.SHIP_COST
                     // and the position of the shipyard is not occupied
-                    && !gameMap.at(me.shipyard).isOccupied()
+                    && (!gameMap.at(me.shipyard).isOccupied())
                     // and there is no reason to avoid building a ship (for 
                     // better scoring)
                     && !shouldAvoidBuildingShips(maxShips)) {
@@ -429,13 +445,25 @@ public class MyBot {
                 if (gameMap.at(ship.position).halite > 64 && !ship.isFull()
                         // or if there will be a new spawned ship and there
                         // could be a collision
-                        || me.shipyard.position.equals(pos) && willSpawn
+                        || (me.shipyard.position.equals(pos) && willSpawn)
                         // or if it hasn't got enough halite to move
                         || ship.halite - gameMap.at(ship).halite / 10 < 0) {
                     commandQueue.add(ship.stayStill());
                 } else {
                     // otherwise move in the `best` direction
-                    commandQueue.add(ship.move(gameMap.naiveNavigate(ship, pos)));
+                    // naiveNavigate but modified to take into account joker tactic
+                    Direction directionFinal = Direction.STILL;
+                    for (final Direction direction : game.gameMap.getUnsafeMoves(ship.position, pos)) {
+                        final Position targetPos = ship.position.directionalOffset(direction);
+                        if (!game.gameMap.at(targetPos).isOccupied() ||
+                                (game.gameMap.at(targetPos).hasStructure() &&
+                                        game.gameMap.at(targetPos).structure.equals(game.me.shipyard))) {
+                            game.gameMap.at(targetPos).markUnsafe(ship);
+                            directionFinal = direction;
+                            break;
+                        }
+                    }
+                    commandQueue.add(ship.move(directionFinal));
                 }
             }
 
