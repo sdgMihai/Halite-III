@@ -331,13 +331,68 @@ public class MyBot {
     }
 
     /**
-     * Decides whether the current ship is about to crash in the next move.
      *
-     * @param ship the ship we are currently deciding the direction
-     * @param direction the current ship's most strategic direction to go for
-     * @return true if it there is a ship on the position we plan to move to,
-     * false otherwise
+     * @param ship the ship we are currently trying to find a strategic
+     * direction to go to
+     * @return the directions in which the ship could go, ranked by preference
      */
+    private static List<Direction> goToDropoff(final Ship ship) {
+        final List<Position> positions = new ArrayList<>();
+        final Map<Position, Direction> directions = new HashMap<>();
+        // nearestDropOffs returns a list with the positions and the specific
+        // directions to the closest drop offs
+        final List<Pair<Position, Direction>> closestDrops = nearestDropOffs(ship);
+
+        for (Pair<Position, Direction> drop : closestDrops) {
+            final Position dropLoc = drop.getFirst();
+            final Direction dropDir = drop.getSecond();
+
+            positions.add(dropLoc);
+            directions.put(dropLoc, dropDir);
+        }
+        // ensures that the ships don't all use the same path by giving them
+        // different directional guidances
+        Collections.shuffle(positions);
+
+        // collect the remaining directions as well, since it could be the
+        // case that the ones which are better are not necessarily free to
+        // use
+        final List<Position> randPositions = new ArrayList<>();
+        for (Direction dir : Direction.ALL_CARDINALS) {
+            // avoid directions which have already been considered
+            if (closestDrops.stream().anyMatch((p) -> p.getSecond() == dir)) {
+                continue;
+            }
+
+            final Position p = ship.position.directionalOffset(dir);
+            randPositions.add(p);
+            directions.put(p, dir);
+        }
+
+        // shuffle the above mentioned positions in order to avoid using the
+        // same routes.
+        // note that we are doing this separately in order to ensure that
+        // the preferred routes are always the first ones to be considered
+        // and use the alternatives only if they are not available
+        Collections.shuffle(randPositions, rnd);
+        positions.addAll(randPositions);
+        // since we are issuing moving commands as directions, not as positions
+        // we must convert each position into the direction which the ship must
+        // take to reach it. as such, we map the direction using the `direction`
+        // map, which maps each location with the corresponding direction
+        return positions.stream().map((p) ->
+                directions.get(p)).distinct().collect(Collectors.toList());
+    }
+
+
+            /**
+             * Decides whether the current ship is about to crash in the next move.
+             *
+             * @param ship the ship we are currently deciding the direction
+             * @param direction the current ship's most strategic direction to go for
+             * @return true if it there is a ship on the position we plan to move to,
+             * false otherwise
+             */
     private static boolean canCrash(final Ship ship, final Direction direction) {
         // the position according to the direction we want the ship to move to
         Position newLocation = ship.position.directionalOffset(direction);
@@ -411,59 +466,108 @@ public class MyBot {
 
             // attempt to compute the action of each ship
             for (final Ship ship : me.ships.values()) {
-                // checks if the ship should be turned into a drop off
-                if (shouldTurnIntoDropOff(ship)
-                        // and whether we have enough halite for transformation
-                        && me.halite > Constants.DROPOFF_COST) {
-                    me.halite -= Constants.DROPOFF_COST;
-                    commandQueue.add(ship.makeDropoff());
-                    continue;
-                }
-
-                // the direction which does not lead to a crash, initially nil
-                Direction goodDir = null;
-                // findDirections returns a "personalized" list, for every ship,
-                // of close positions from the vips list
-                for (Direction dir : findDirections(ship)) {
-                    // avoid going into a direction that could lead to a crash
-                    if (!canCrash(ship, dir)) {
-                        goodDir = dir;
-                        break;
+                if (game.turnNumber < Constants.MAX_TURNS - 0) {
+                    // checks if the ship should be turned into a drop off
+                    if (shouldTurnIntoDropOff(ship)
+                            // and whether we have enough halite for transformation
+                            && me.halite > Constants.DROPOFF_COST) {
+                        me.halite -= Constants.DROPOFF_COST;
+                        commandQueue.add(ship.makeDropoff());
+                        continue;
                     }
-                }
 
-                // if no good direction was found, stay still
-                if (goodDir == null) {
-                    commandQueue.add(ship.stayStill());
-
-                    continue;
-                }
-
-                final Position pos = ship.position.directionalOffset(goodDir);
-                // the ship will stay still if there is halite to collect on
-                // this position and it is not full
-                if (gameMap.at(ship.position).halite > 64 && !ship.isFull()
-                        // or if there will be a new spawned ship and there
-                        // could be a collision
-                        || (me.shipyard.position.equals(pos) && willSpawn)
-                        // or if it hasn't got enough halite to move
-                        || ship.halite - gameMap.at(ship).halite / 10 < 0) {
-                    commandQueue.add(ship.stayStill());
-                } else {
-                    // otherwise move in the `best` direction
-                    // naiveNavigate but modified to take into account joker tactic
-                    Direction directionFinal = Direction.STILL;
-                    for (final Direction direction : game.gameMap.getUnsafeMoves(ship.position, pos)) {
-                        final Position targetPos = ship.position.directionalOffset(direction);
-                        if (!game.gameMap.at(targetPos).isOccupied() ||
-                                (game.gameMap.at(targetPos).hasStructure() &&
-                                        game.gameMap.at(targetPos).structure.equals(game.me.shipyard))) {
-                            game.gameMap.at(targetPos).markUnsafe(ship);
-                            directionFinal = direction;
+                    // the direction which does not lead to a crash, initially nil
+                    Direction goodDir = null;
+                    // findDirections returns a "personalized" list, for every ship,
+                    // of close positions from the vips list
+                    for (Direction dir : findDirections(ship)) {
+                        // avoid going into a direction that could lead to a crash
+                        if (!canCrash(ship, dir)) {
+                            goodDir = dir;
                             break;
                         }
                     }
-                    commandQueue.add(ship.move(directionFinal));
+
+                    // if no good direction was found, stay still
+                    if (goodDir == null) {
+                        commandQueue.add(ship.stayStill());
+
+                        continue;
+                    }
+
+                    final Position pos = ship.position.directionalOffset(goodDir);
+                    // the ship will stay still if there is halite to collect on
+                    // this position and it is not full
+                    if (gameMap.at(ship.position).halite > 64 && !ship.isFull()
+                            // or if there will be a new spawned ship and there
+                            // could be a collision
+                            || (me.shipyard.position.equals(pos) && willSpawn)
+                            // or if it hasn't got enough halite to move
+                            || ship.halite - gameMap.at(ship).halite / 10 < 0) {
+                        commandQueue.add(ship.stayStill());
+                    } else {
+                        // otherwise move in the `best` direction
+                        // naiveNavigate but modified to take into account joker tactic
+                        Direction directionFinal = Direction.STILL;
+                        for (final Direction direction : game.gameMap.getUnsafeMoves(ship.position, pos)) {
+                            final Position targetPos = ship.position.directionalOffset(direction);
+                            if (!game.gameMap.at(targetPos).isOccupied() ||
+                                    (game.gameMap.at(targetPos).hasStructure() &&
+                                            game.gameMap.at(targetPos).structure.equals(game.me.shipyard))) {
+                                game.gameMap.at(targetPos).markUnsafe(ship);
+                                directionFinal = direction;
+                                break;
+                            }
+                        }
+                        commandQueue.add(ship.move(directionFinal));
+                    }
+                } else {
+                    willSpawn = false;
+                    // the direction which does not lead to a crash, initially nil
+                    Direction goodDir = null;
+                    // findDirections returns a "personalized" list, for every ship,
+                    // of close positions from the vips list
+                    for (Direction dir : goToDropoff(ship)) {
+                        // avoid going into a direction that could lead to a crash
+                        if (!canCrash(ship, dir)) {
+                            goodDir = dir;
+                            break;
+                        }
+                    }
+
+                    // if no good direction was found, stay still
+                    if (goodDir == null) {
+                        commandQueue.add(ship.stayStill());
+
+                        continue;
+                    }
+
+                    final Position pos = ship.position.directionalOffset(goodDir);
+                    // the ship will stay still if there is halite to collect on
+                    // this position and it is not full
+                    if (gameMap.at(ship.position).halite > 64 && !ship.isFull()
+                            // or if there will be a new spawned ship and there
+                            // could be a collision
+                            || (me.shipyard.position.equals(pos) && willSpawn)
+                            // or if it hasn't got enough halite to move
+                            || ship.halite - gameMap.at(ship).halite / 10 < 0) {
+                        commandQueue.add(ship.stayStill());
+                    } else {
+                        // otherwise move in the `best` direction
+                        // naiveNavigate but modified to take into account joker tactic
+                        Direction directionFinal = Direction.STILL;
+                        for (final Direction direction : game.gameMap.getUnsafeMoves(ship.position, pos)) {
+                            final Position targetPos = ship.position.directionalOffset(direction);
+                            if (!game.gameMap.at(targetPos).isOccupied() ||
+                                    (game.gameMap.at(targetPos).hasStructure() &&
+                                            game.gameMap.at(targetPos).structure.equals(game.me.shipyard))) {
+                                game.gameMap.at(targetPos).markUnsafe(ship);
+                                directionFinal = direction;
+                                break;
+                            }
+                        }
+                        commandQueue.add(ship.move(directionFinal));
+                    }
                 }
             }
 
