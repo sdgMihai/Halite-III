@@ -1,4 +1,4 @@
-Ultima modificare : 17 martie 2019
+Ultima modificare : 14 aprilie 2019
 
 Halite 3, team INTegralistii
 
@@ -92,7 +92,7 @@ Complexitati:
 
 
 	- Spatiale
-	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care 
+	Botul rezerva spatiu pentru corabii si dropoff plus alte variabile care
 	nu sunt atat de costisitoare in cadrul player ului -- O(nr maxim de
  	nave + nr maxim de dropoff - uri), iar functiile chemate folosesc
 	vectori, liste aditionale care vor contine pozitii din harta, respectiv
@@ -141,7 +141,7 @@ Roluri:
 	Cezar: a lucrat o varianta functionala(care trece testele), realizand
  	un punct de plecare solid. A realizat cercetare(a descoperit ca solutie
 	folosirea greedy).
-	Octavian Grosu: a operat in debugging si la logica matematica a
+	Octavian: a operat in debugging si la logica matematica a
  	programului + corectare typos.
 	Mihai: a realizat README si a facut comparatii statistice intre
 	variantele alcatuite de noi, pentru a putea decide ce idee din algoritm
@@ -157,3 +157,35 @@ Rulare :
 	cd ../
 	si rulam checker - ul:
 	python ./run.py --cmd "java MyBot 0" --round 1
+
+Later edit etapa 2 :
+	Am combatut tactica Jokerului modificand in functia canCrash astfel
+incat daca pozitia spre care vrea sa mearga nava este cea a shipyard-ului si
+este ocupata, sa nu o evite, iar in functia main, pentru strategia naiva, daca
+pozitia unde are nava directia urmatoare este libera sau daca este ocupata si
+este cea a shipyard-ului, sa mearga pe ea.
+	Am marit putin scorul per joc incercand sa aducem navele spre cel mai
+apropiat Dropoff cu 10 mutari inainte. Daca nava se afla deja pe o pozitie cu
+dropoff pe ea, atunci va sta pe loc, altfel, merge spre cel mai apropiat
+dropoff.
+
+Complexitati:
+  Schimbarile au fost doar de abordare, neafectand rularea  din punct de vedere
+spatial sau temporal.
+
+Algoritmi si profiling:
+  Algoritmii folositi au ramas la fel, iar, din punct de vede al profiling-ului
+nu au fost schimbari observabile.
+
+Roluri:
+  Victoria: a adaugat in README informatiile in legatura cu etapa a 2-a si a
+	ajutat la intelegerea generala a programului.
+	Cezar: a realizat modificarile necesare pentru a combat tactica Jokerului.
+	Mihai: a adus modificari de executie a programului pentru a creste cantitatea
+	de halite stransa (cum ar fi intoarcerea navelor la dropoff-uri).
+	Octavian: a realizat cercetare in legatura cu ce alte modalitati/algoritmi
+	se pot folosi pentru a creste punctajul obtinut. Din acestea se va alege dupa
+	urmatoarea "confruntare" cu celelalte echipe.
+
+Rulare:
+  La fel ca la etapa 1 doar ca se va folosi --round 2 ca argument.
