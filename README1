@@ -1,14 +1,13 @@
-Ultima modificare : 17 martie 2019
-
+Ultima modificare : 15 mai 2019
 Halite 3, team INTegralistii
 
 Continut proiect:
 	/hlt - contine clasele venite odata cu scheletul
 	MyBot.java - contine logica bot ului si strategia implementata
-	MyUtils.java - contine functii utile in rezolvarea task urilor
 	README
 	/environment pentru compilare si testare
-
+    /replays contine replay - urile jocului
+    /run.py scriptul python de check
 
 
 Strategia 
@@ -16,101 +15,210 @@ Strategia
 	1.Botul incepe prin a detecta si inregistra pozitiile vip. 
 	2.Apoi daca sunt indeplinite conditiile de spawn, mai creeaza un Ship. 
 	3.Urmeaza parcurgerea navelor si luarea unei decizii pentru fiecare.
-		a)Se verifica daca corabia curenta trebuie sa fie transformata in
-		dropoff.
-		b)Daca nu, hotaraste directia corecta de deplasare a navei(incluzand
-		 sa stea pe loc).
+		a)Se verifica daca corabia curenta trebuie sa fie 
+		  transformata in dropoff.
+		b)Daca nu, hotaraste directia corecta de deplasare a
+ 		  navei (incluzand sa stea pe loc).
 		Daca nu a gasit o directie buna de deplasare -> va sta pe loc.
-		Daca exista o directie buna de deplasare, insa corabia nu e plina si
-		mai poate fi colectata halita sau nu are destula halita sa plece de
-		pe pozitia curenta va sta pe loc.
+		Daca exista o directie buna de deplasare, insa corabia nu e
+ 		plina si mai poate fi colectata halita sau nu are destula
+ 		halita sa plece de pe pozitia curenta va sta pe loc.
 		Altfel se va deplasa in directia calculata.(cea mai buna)
-
 	Strategia in sine:
-	Corabiile sunt create in limita unui numar calculat in functie de dimensiunile
-	hartii. Fiecare corabie este incurajata sa se departeze de shipyard si sa 
-	caute pozitii cat mai pline de halita si apropiate de vip.
+	Corabiile sunt create in limita unui numar calculat in functie de
+	dimensiunile hartii. Fiecare corabie este incurajata sa se departeze
+	de shipyard si sa caute pozitii cat mai pline de halita si
+	apropiate de vip.
 
 
 
 Definirea termenilor si a conditiilor pentru luarea deciziilor:
 	1)Pozitii vip:
-	Sunt pozitiile care au cea mai multa halita, si sunt salvate intr-o lista
-	obtinuta prin apelul functiei scanVipPositions().
+	Sunt pozitiile care au cea mai multa halita, si sunt salvate intr-o
+ 	lista obtinuta prin apelul functiei scanVipPositions().
 
 	2)Cand trebuie sa nu fie adaugate corabii noi?
-	Daca mai este halita sa poata fi adaugata o corabie si sa fie facuta dropoff,
-	daca spawn ul este proxim unui vip position, daca nu este indeplinita conditia
-	de limitare a nr. de corabii atunci pot fi adaugate.
-	Insa daca poate fi folosit ca Dropoff cea mai apropiata pozitie de Vip, atunci
-	trebuie sa nu mai adaugam noi corabii.
+	Daca mai este halita sa poata fi adaugata o corabie si sa fie facuta
+	dropoff, daca spawn ul este proxim unui vip position, daca nu este
+ 	indeplinita conditia de limitare a nr. de corabii atunci pot fi
+ 	adaugate. Insa daca poate fi folosit ca Dropoff cea mai apropiata
+	pozitie de Vip, atunci trebuie sa nu mai adaugam noi corabii.
 
 	3)Putem sa folosim o pozitie ca Dropoff?
 	Daca nu este in proximitatea altui Dropoff.
 
 	4)Ar trebui sa facem un Dropoff?
-	Daca nu e in proximitatea altui Dropoff, si sunt destul corabii care pot fi
-	deservite de el, atunci merita.
+	Daca nu e in proximitatea altui Dropoff, si sunt destul corabii 
+	care pot fi deservite de el, atunci merita.
 
 	5)Care este directia cea mai buna de deplasare?
-	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia ca pragul de
-	halita din joc scade incetul cu incetul invers in raport cu procentajul nr de pasi 
-	care mai sunt nejucati,	vom incerca/vom decide daca trebuie 
-	sa	intoarcem corabia la baza sau nu. 
-		Daca halita la bord este peste prag amintit, atunci trebuie sa intoarcem
-		corabia la cel mai apropiat dropoff. Intoarcerea este asigurata sa nu fie
-		aceeasi pentru toate corabiile.
-		Altfel putem cauta in continuare halita. Daca putem cauta in continuare
-		atunci punem conditia incurajarii Ship ului sa se departeze de shipyard
-		si sa se indrepte spre pozitii cu halita mai multa si mai apropiata de
-		pozitia vip proxima.
+	Cautam cele mai apropiate Dropoff - uri. Apoi bazandu-ne pe observatia
+	ca pragul de halita din joc scade incetul cu incetul invers in raport
+	cu procentajul nr de pasi care mai sunt nejucati, vom incerca/vom
+	decide daca trebuie sa intoarcem corabia la baza sau nu. 
+	Daca halita la bord este peste pragul amintit, atunci trebuie sa
+	intoarcem corabia la cel mai apropiat dropoff. Intoarcerea este
+	asigurata sa nu fie aceeasi pentru toate corabiile.
+	Altfel putem cauta in continuare halita. Daca putem cauta in continuare
+	atunci punem conditia incurajarii Ship ului sa se departeze de shipyard
+	si sa se indrepte spre pozitii cu halita mai multa si mai apropiata de
+	pozitia vip proxima.
 
 Complexitati:
-	Complexitatati particulare necesare in calculare complexitatii generale:
+	Complexitatati particulare necesare in calcularea 
+	complexitatii generale:
 	- Temporale
 	Bucla de parcurgere a turelor din main are o complexitate Teta(N),
-											unde N este nr de ture ale jocului.
-	Scanarea pozitiilor de vip are complexitate Teta(MlogM), unde M este numarul
-	de celule ale hartii.
+	unde N este numarul de ture ale jocului.
+	Scanarea pozitiilor de vip are complexitate O(MlogM), unde M este
+	numarul de celule ale hartii.
 	Luarea deciziilor pentru corabii este O(maxShips), unde maxShips este 
 	(int)Math.sqrt(inaltimea_hartii * latimea_hartii) / 2.
 		In luarea deciziilor, cea mai costisitoare decizie este gasirea
-		directiilor posibile in care va merge nava, avand o complexitate O(G), 
-		unde G este -> max(nr de dropoff, nr de pozitii vip).
-			/* pentru ca selectarea directiei depinde daca vrem sa intoarcem corabia 
-			la baza sau vrem sa mergem spre un vip*/
+		directiilor posibile in care va merge nava, avand o
+		complexitate O(G), unde G este -> 
+		max(nr de dropoff, nr de pozitii vip).
+		/* pentru ca selectarea directiei depinde daca vrem sa 
+		   intoarcem corabia la baza sau vrem sa mergem spre un vip*/
 		Toate celelalte decizii pot fi aproximate la O(1).
+	Calculam complexitatea buclei interioare:
+	    maxShips * G = ((int)Math.sqrt(inaltimea_hartii * 
+			latimea_hartii) / 2) * ((int) Math.sqrt(
+			inaltimea_hartii * latimea_hartii) / 16) *
+        		inaltimea_hartii * latimea_hartii /100
+    = M^2 /3200 -> complexitatea luarii deciziei pentru toate navele este
+    O(nrCelule^2).
+
 
 	- Spatiale
-	Botul rezerva spatiu pt corabii si dropoff plus alte variabile care nu sunt atat
-	de costisitoare in cadrul player ului -- O(nr maxim de nave + nr  maxim de dropoff - uri),
-	iar functiile chemate folosesc vectori, liste aditionale care vor contine
-	pozitii din harta, respectiv dropoff - uri -- O(M) (unde M este definit anterior si
-	deci mai mare ca numarul de nave, implicit deci si de dropoff - uri. 
+	Botul rezerva spatiu pentru corabii si dropoff plus alte variabile care
+	nu sunt atat de costisitoare in cadrul player ului -- O(nr maxim de
+ 	nave + nr maxim de dropoff - uri), iar functiile chemate folosesc
+	vectori, liste aditionale care vor contine pozitii din harta, respectiv
+	dropoff - uri -- O(M) (unde M este definit anterior) si deci mai mare
+ 	ca numarul de nave, implicit deci si de dropoff - uri.
 
 	Complexitate generala:
 	- Temporala:
-	O prima aproximare este O(N * (MlogM + maxShips * G)).
-	Luand in considerare ca numarul corabiilor este redus in raport cu numarul celulelor
-	ajungem la solutia O(N * M * logM).
+	O prima aproximare este O(N * (MlogM + M^2)).
+	logM < M , oricare M > 1 -> Concluzia este O(N * M^2).
+
 
 
 	- Spatiala:
-	La un moment de timp putem avea alocate si datele player - ului si datele aditionale
-	folosite de logica(functiile) programului. Asadar O(maxShips + M).
+	La un moment de timp putem avea alocate si datele player - ului 
+	si datele aditionale folosite de logica(functiile) programului. 
+	Asadar O(maxShips + M).
 
 Algoritmi:
-	Am urmarit un algoritm greedy. Sunt utilizate de asemenea pentru eficienta si concizie
-	stream - uri java si functii anonime.
+	Am urmarit un algoritm greedy. Sunt utilizate de asemenea pentru
+ 	eficienta si concizie stream - uri java si functii anonime.
+
+Profiling:
+	
+	Am realizat o cronometrare in milisecunde a functiilor, urmata de o
+	medie aritmetica a rezultatelor. S-a obtinut media:
+	scanVipPositions: 41.888888888888886 ms
+	shouldAvoidBuildingShips: 0.0 ms
+	canUseAsDropOff: 0.03988095238095238 ms
+	ShouldTurnIntoDropOff: 1.2222222222222223 ms
+	nearestTargets: 0.5501384300146245 ms
+	nearestDropOffs: 1.1420607170607173 ms
+	findDirections: 6.318318564151909 ms
+	canCrash: 0.11719584165404598 ms
+	Fara media realizata pe toate rundele se optineau si valori de 300ms,
+	dar, in timp, se amortizeaza. 
 
 Surse de inspiratie:
 	https://stackoverflow.com/a/11926952
+	https://en.m.wikipedia.org/wiki/Exponential_distribution
 	
 Roluri:
-	Victoria: a lucrat in toate, remarcandu-se exceptional la scrierea si gandirea codului. 
-	De asemenea a lucrat si in cercetare + optimizare si testare.
-	Cezar: a lucrat o varianta functionala(care trece testele), realizand un punct de plecare
-	solid. A realizat cercetare( a descoperit ca solutie folosirea greedy).
-	Octavian Grosu: a operat in debugging si la logica matematica a programului + corectare typos
-	Mihai: a realizat README si a facut comparatii statistice intre variantele alcatuite de noi,
-	pentru a putea decide ce idee din algoritm trebuie pastrata
+	Victoria: a lucrat in toate, remarcandu-se exceptional la scrierea si
+	gandirea codului. De asemenea a lucrat si in cercetare + optimizare si
+	testare.
+	Cezar: a lucrat o varianta functionala(care trece testele), realizand
+ 	un punct de plecare solid. A realizat cercetare(a descoperit ca solutie
+	folosirea greedy).
+	Octavian: a operat in debugging si la logica matematica a
+ 	programului + corectare typos.
+	Mihai: a realizat README si a facut comparatii statistice intre
+	variantele alcatuite de noi, pentru a putea decide ce idee din algoritm
+ 	trebuie pastrata.
+
+
+Rulare :
+	Compilare:deja facuta, dar poate fi refacuta prin rularea urmatoarelor
+ 	comenzi in folder - ul environment:
+	cmake .
+	make -j4
+	Apoi ne intoarcem:
+	cd ../
+	si rulam checker - ul:
+	python ./run.py --cmd "java MyBot 0" --round 1
+
+-------------------------------------------------------------------------------
+Later edit etapa 2 :
+	Am combatut tactica Jokerului modificand in functia canCrash astfel
+	incat daca pozitia spre care vrea sa mearga nava este cea a shipyard-ului si
+	este ocupata, sa nu o evite, iar in functia main, pentru strategia naiva, daca
+	pozitia unde are nava directia urmatoare este libera sau daca este ocupata si
+	este cea a shipyard-ului, sa mearga pe ea.
+	Am marit putin scorul per joc incercand sa aducem navele spre cel mai
+	apropiat Dropoff cu 10 mutari inainte. Daca nava se afla deja pe o pozitie cu
+	dropoff pe ea, atunci va sta pe loc, altfel, merge spre cel mai apropiat
+	dropoff.
+
+Complexitati:
+  Schimbarile au fost doar de abordare, neafectand rularea  din punct de vedere
+spatial sau temporal.
+
+Algoritmi si profiling:
+  Algoritmii folositi au ramas la fel, iar, din punct de vede al profiling-ului
+nu au fost schimbari observabile.
+
+Roluri:
+  	Victoria: a adaugat in README informatiile in legatura cu etapa a 2-a si a
+	ajutat la intelegerea generala a programului.
+	Cezar: a realizat modificarile necesare pentru a combat tactica Jokerului.
+	Mihai: a adus modificari de executie a programului pentru a creste cantitatea
+	de halite stransa (cum ar fi intoarcerea navelor la dropoff-uri).
+	Octavian: a realizat cercetare in legatura cu ce alte modalitati/algoritmi
+	se pot folosi pentru a creste punctajul obtinut. Din acestea se va alege dupa
+	urmatoarea "confruntare" cu celelalte echipe.
+
+Rulare:
+  La fel ca la etapa 1 doar ca se va folosi --round 2 ca argument.
+
+-------------------------------------------------------------------------------
+Later edit etapa 3:
+	Din fericire, deoarece programul la etapele anterioare a fost compus intr-un
+	mod care sa ofere modificarea usoara a acestuia, pentru a infrange ceilalti
+	boti au trebuit modificate constantele. In principal s-a urmarit o tactica
+	mai agresiva impotriva celorlalti boti, deoarece botul in etapa 2 nu lucra
+	la potential maxim. S-a ales sa se foloseasca mai multe nave, si, in acelasi
+	timp, sa se construiasca mai multe dropoff-uri.
+
+Complexitati:
+	Schimbarile au tinut mai mult de limitele generale ale algoritmului,
+	insemnand ca, in particular, complexitatea deplasarii unei nave a ramas
+	la fel (crescandu-se insa numarul de nave).
+
+Algoritmi si profiling:
+	Algoritmul a ramas neschimbat de la o etapa la alta, iar ca profiling timpii
+	au crescut per total, direct proportional cu numarul de nave, care a
+	crescut datorita modificarii limitelor.
+
+Roluri:
+	Victoria: s-a coordonat impreuna cu Octavian pentru imbunatatirea limitelor
+	(deoarece varianta algoritmului de baza ii apartine) si a mai cautat alte
+	modalitati de extindere a algoritmului pentru etapa a 4-a.
+	Cezar: a adaugat la fisierul README informatia in legatura cu etapa a 3-a,
+	respectiv s-a ocupat de coordonarea echipei in timpul perioadei de tranzitie
+	de tipul facultate-vacanta-facultate.
+	Mihai: a documentat codul nou si a verificat ca modificarile aduse sa nu
+	afecteze fiabilitatea algoritmului pentru etapa urmatoare.
+	Octavian: in urma cercetarii realizate la etapa anterioara a reusit sa
+	modifice limitele algoritmului in asa fel incat sa creasca eficienta
+	acestuia intr-un mod considerabil, ducand si la o crestera considerabila a
+	scorului obtinut.
